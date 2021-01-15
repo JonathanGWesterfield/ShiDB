@@ -5,4 +5,12 @@ Trying to follow [this guide](https://cstack.github.io/db_tutorial/) but impleme
 
 Maybe when I'm done, I'll try to make it more advanced using the [Database Systems Textbook.](https://people.inf.elte.hu/miiqaai/elektroModulatorDva.pdf)
 
+More resources can be found in this [StackOverflow post](https://softwareengineering.stackexchange.com/questions/121653/create-my-own-database-system)
+
 The ultimate goal is to understand this well enough to try tackling an in-memory database (a very simple implementation of one).
+
+Maybe a fun follow up project will be a graph database like [FlockDB](https://github.com/twitter-archive/flockdb/tree/master/src/main/scala/com/twitter/flockdb)
+
+
+
+
