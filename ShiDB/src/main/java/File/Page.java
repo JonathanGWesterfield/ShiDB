@@ -27,7 +27,7 @@ public class Page {
     }
 
     /**
-     * A constructor for creating log pages
+     * A constructor for creating log pages. Allows us to bulk load data into a page
      * @param blob The byte array we want to store
      */
     public Page(byte[] blob) {

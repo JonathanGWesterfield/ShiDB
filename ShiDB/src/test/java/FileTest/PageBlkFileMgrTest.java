@@ -1,16 +1,26 @@
-package File;
+package FileTest;
 
+
+import static org.junit.Assert.assertEquals;
+
+import File.FileMgr;
+import File.BlockId;
+import File.Page;
+
+import org.junit.Test;
+
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
-
-import jdk.internal.jline.internal.TestAccessible;
-
 public class FileTest {
 
-    @TestAccessible
-    public void fullPageBlkReadWriteTest() {
+    @Test
+    public void fileTest() {
         try {
             String testFileDir = "FileTest";
             String testStr = "abcdefghijklm";
@@ -55,6 +65,12 @@ public class FileTest {
             System.out.printf("Page 2 Offset: %d \t Value: %d\n", pos3, p2.getShort(pos3));
             System.out.printf("Page 2 Offset: %d \t Value: %d\n", pos4, p2.getLong(pos4));
             System.out.printf("Page 2 Offset: %d \t Value: %s\n", pos5, p2.getDateTime(pos5).toString());
+
+            assertEquals(p1.getInt(pos1), p2.getInt(pos1));
+            assertEquals(p1.getString(pos2), p2.getString(pos2));
+            assertEquals(p1.getShort(pos3), p2.getShort(pos3));
+            assertEquals(p1.getLong(pos4), p2.getLong(pos4));
+            assertEquals(p1.getDateTime(pos5).toString(), p2.getDateTime(pos5).toString());
         }
         catch (Exception e) {
             System.out.println(e);
