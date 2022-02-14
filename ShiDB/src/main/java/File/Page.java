@@ -2,6 +2,7 @@ package File;
 
 import ErrorEnums.FileError;
 
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -27,11 +28,14 @@ public class Page {
     }
 
     /**
-     * A constructor for creating log pages. Allows us to bulk load data into a page
+     * A constructor for creating log pages. Allows us to bulk load data into a page.
+     * Whenever creating a page, need to allocate empty byte array first, then wrap
+     * the array with a new page.
      * @param blob The byte array we want to store
      */
     public Page(byte[] blob) {
-        this.buffer.wrap(blob);
+        this.buffer = ByteBuffer.wrap(blob);
+        this.buffer.rewind();
     }
 
     /**
@@ -98,7 +102,7 @@ public class Page {
     }
 
     /**
-     * Gets the byte array at the offset position and converts into into an ASCII
+     * Gets the byte array at the offset position and converts into an ASCII
      * String.
      * @param offset The position in the array the String is located at.
      * @return The String at the specified offset position.
@@ -113,8 +117,10 @@ public class Page {
      * @param offset
      * @param val
      */
-    public void setInt(int offset, int val) {
-        this.buffer.putInt(val, offset);
+    public void setInt(int offset, int val) throws Exception {
+        if (isTooBig(offset, val))
+            throw new Exception(FileError.BYTEBUFFER_TOO_FULL.toString());
+        this.buffer.putInt(offset, val);
     }
 
     /**
@@ -173,8 +179,7 @@ public class Page {
      * @param val short we want to insert into the buffer.
      */
     public void setShort(int offset, short val) {
-        buffer.position(offset);
-        buffer.putShort(val);
+        buffer.putShort(offset, val);
     }
 
     /**
@@ -183,8 +188,7 @@ public class Page {
      * @param val The long we want to insert into the buffer.
      */
     public void setLong(int offset, long val) {
-        buffer.position(offset);
-        buffer.putLong(val);
+        buffer.putLong(offset, val);
     }
 
     /**
@@ -196,9 +200,19 @@ public class Page {
      * @return True if the data is too big. False otherwise.
      */
     private boolean isTooBig(int offset, byte[] blob) {
-        if (offset + blob.length >= buffer.capacity())
-            return true;
-        return false;
+        return offset + blob.length > buffer.capacity();
+    }
+
+    /**
+     * Checks to make sure that the information being inserted into the buffer
+     * won't cause a BufferOverflowException. Information being inserted at the offset
+     * needs to be checked that it won't go out of bounds.
+     * @param offset The offset position we are trying to insert at.
+     * @param val Any Integer. Arg is just used for method overloading.
+     * @return True if the data is too big. False otherwise.
+     */
+    private boolean isTooBig(int offset, int val) {
+        return offset + Integer.BYTES > buffer.capacity();
     }
 
     /**
@@ -221,4 +235,12 @@ public class Page {
         this.buffer.position(0);
         return this.buffer;
     }
+
+    /**
+     * Clears the contents of the page.
+     */
+    public void clear() {
+        this.buffer.clear();
+    }
 }
+

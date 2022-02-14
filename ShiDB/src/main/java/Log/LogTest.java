@@ -1,10 +1,15 @@
 package Log;
 
+import static Constants.ShiDBModules.LOG;
+
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Iterator;
 
-import File.FileMgr;
 import File.Page;
+import Startup.ShiDB;
 
 public class LogTest {
 
@@ -12,12 +17,11 @@ public class LogTest {
 
     public static void main(String[] args) {
         try {
-            String testFileDir = "FileTest";
-            String logFilename = "testLogFile.shidb.log";
+            ShiDB shiDB = new ShiDB(LOG, 400);
+            logMgr = shiDB.getLogMgr();
 
-            FileMgr fm = new FileMgr(new File(testFileDir), 400);
+            clearTheFile(ShiDB.constructTestFileDir(LOG), ShiDB.constructLogFileName(LOG));
 
-            logMgr = new LogMgr(fm, logFilename);
             createRecords(1, 35);
             printLogRecords("Log file has been populated with the following records: ");
             createRecords(36, 70);
@@ -29,6 +33,17 @@ public class LogTest {
             System.out.println(e);
             e.printStackTrace();
         }
+    }
+
+    /*
+    Clears the log file for testing. Otherwise, log file will throw buffer underflow exception
+     */
+    public static void clearTheFile(String testDir, String filename) throws IOException {
+        FileWriter fwOb = new FileWriter(new File(testDir, filename), false);
+        PrintWriter pwOb = new PrintWriter(fwOb, false);
+        pwOb.flush();
+        pwOb.close();
+        fwOb.close();
     }
 
     private static void printLogRecords(String msg) {

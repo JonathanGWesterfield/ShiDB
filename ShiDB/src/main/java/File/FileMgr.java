@@ -80,7 +80,8 @@ public class FileMgr {
 
     /**
      * Extends the file by 1 block on the disk. Does this by appending an empty byte array
-     * of 1 block size to the end of the file.
+     * of 1 block size to the end of the file. Relies on OS to extend file when we
+     * force a new empty byte buffer to the end of it.
      * @param filename The file that needs to be appended/extended.
      * @return The new block at the end of the file.
      */
@@ -122,12 +123,8 @@ public class FileMgr {
         return (int)(file.length() / blockSize);
     }
 
-    public int blockSize() {
-        return 0;
-    }
-
     /**
-     * Opens a new file for each table in the database.
+     * Opens a new file (tables, logs, etc) in the database.
      * @param filename Name of the file to be opened for the table
      * @return Sends back a file for reading and writing synchronously.
      * @throws IOException
@@ -139,8 +136,8 @@ public class FileMgr {
         // doesn't mean file doesn't exist
         if (file == null) {
             // file for every table
-            File dbTable = new File(dbDirectory, filename);
-            file = new RandomAccessFile(dbTable, "rws");
+            File filePtr = new File(dbDirectory, filename);
+            file = new RandomAccessFile(filePtr, "rws");
 
             openFiles.put(filename, file);
         }
