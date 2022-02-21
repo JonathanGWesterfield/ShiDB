@@ -3,7 +3,7 @@ My attempt to create a *very* simple database from scratch to figure out how the
 
 ~~Trying to follow [this guide](https://cstack.github.io/db_tutorial/) but implement it in Java so I don't have to worry about super granular stuff in C.~~
 
-Am following Edward Sciore Database Design and Implementation. The unedited SimpleDB code is in this repo as well. 
+Am following Edward Sciore Database Design and Implementation. The unedited SimpleDB code is in this repo as well under the `SimpleDB_3.3` as my example when I get stuck or the textbook has an errata. 
 
 Maybe when I'm done, I'll try to make it more advanced using the [Database Systems Textbook.](https://people.inf.elte.hu/miiqaai/elektroModulatorDva.pdf)
 
