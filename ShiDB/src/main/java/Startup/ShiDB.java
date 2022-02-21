@@ -1,9 +1,11 @@
 package Startup;
 
 import java.io.File;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import Constants.ShiDBModules;
 import Buffer.BufferMgr;
+import Constants.ShiDBModules;
 import Constants.TestConstants;
 import File.FileMgr;
 import Log.LogMgr;
@@ -63,7 +65,7 @@ public class ShiDB {
      * instantiates the modules necessary for that test.
      */
     private void constructFileTestShiDB() {
-        fileMgr = new FileMgr(new File(constructTestFileDir(ShiDBModules.FILE)), blockSize);
+        fileMgr = new FileMgr(new File(constructFileDirName(ShiDBModules.FILE)), blockSize);
     }
 
     /**
@@ -71,7 +73,7 @@ public class ShiDB {
      * instantiates the modules necessary for that test.
      */
     private void constructLogTestShiDB() throws Exception {
-        fileMgr = new FileMgr(new File(constructTestFileDir(ShiDBModules.LOG)), blockSize);
+        fileMgr = new FileMgr(new File(constructFileDirName(ShiDBModules.LOG)), blockSize);
         logMgr = new LogMgr(fileMgr, constructLogFileName(ShiDBModules.LOG));
     }
 
@@ -80,23 +82,36 @@ public class ShiDB {
      * instantiates the modules necessary for that test.
      */
     private void constructBufferTestShiDB() throws Exception {
-        fileMgr = new FileMgr(new File(constructTestFileDir(ShiDBModules.BUFFER)), blockSize);
+        fileMgr = new FileMgr(new File(constructFileDirName(ShiDBModules.BUFFER)), blockSize);
         logMgr = new LogMgr(fileMgr, constructLogFileName(ShiDBModules.BUFFER));
+
+        if (!Optional.of(bufferSize).isPresent())
+            throw new Exception("Buffer size for the buffer manager has not been set!");
+        
         bufferMgr = new BufferMgr(fileMgr, logMgr, bufferSize);
     }
 
     /**
      * Helper function to create the file directory for the specific test being run
-     * @param module The module being tested
+     * @param module The {@link ShiDBModules} module being tested
      * @return The name of the test directory
      */
-    public static String constructTestFileDir(ShiDBModules module) {
+    public static String constructFileDirName(ShiDBModules module) {
         return module.toString() + TestConstants.FILE_DIR;
+    }
+
+    /** Helper function to create the database file name in its respective test output
+     * directory.
+     * @param module The {@link ShiDBModules} module being tested
+     * @return
+     */
+    public static String constructDBFileName(ShiDBModules module) {
+        return module.toString() + TestConstants.DB_FILE;
     }
 
     /**
      * Helper function to create the log file name for the specific test being run
-     * @param module The module being tested
+     * @param module The {@link ShiDBModules} module being tested
      * @return The name of the log file
      */
     public static String constructLogFileName(ShiDBModules module) {

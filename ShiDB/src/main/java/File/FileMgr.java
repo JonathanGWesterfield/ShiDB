@@ -162,8 +162,8 @@ public class FileMgr {
     }
 
     /**
-     * Gives the default blocksize the file manager has been set to. This
-     * is really the default size of the buffer that a page contains.
+     * Gives the default blocksize the file manager has been set to (the number of elements
+     * the byte buffer of each page or block on the disk can hold).
      * @return The default page block size.
      */
     public int getBlockSize() {

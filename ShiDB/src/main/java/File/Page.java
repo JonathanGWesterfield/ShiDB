@@ -1,8 +1,7 @@
 package File;
 
-import ErrorEnums.FileError;
+import Error.EnumFileError;
 
-import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +9,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Date;
 
 public class Page {
 
@@ -119,7 +117,7 @@ public class Page {
      */
     public void setInt(int offset, int val) throws Exception {
         if (isTooBig(offset, val))
-            throw new Exception(FileError.BYTEBUFFER_TOO_FULL.toString());
+            throw new Exception(EnumFileError.BYTEBUFFER_TOO_FULL.toString());
         this.buffer.putInt(offset, val);
     }
 
@@ -131,7 +129,7 @@ public class Page {
      */
     public void setBytes(int offset, byte[] blob) throws Exception {
         if (isTooBig(offset, blob))
-            throw new Exception(FileError.BYTEBUFFER_TOO_FULL.toString());
+            throw new Exception(EnumFileError.BYTEBUFFER_TOO_FULL.toString());
 
         buffer.position(offset);
         buffer.putInt(blob.length);

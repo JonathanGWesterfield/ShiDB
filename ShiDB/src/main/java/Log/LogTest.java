@@ -20,14 +20,15 @@ public class LogTest {
             ShiDB shiDB = new ShiDB(LOG, 400);
             logMgr = shiDB.getLogMgr();
 
-            clearTheFile(ShiDB.constructTestFileDir(LOG), ShiDB.constructLogFileName(LOG));
+            clearTheFile(ShiDB.constructFileDirName(LOG), ShiDB.constructLogFileName(LOG));
 
+//            printLogRecords("The initial empty log file:");  //print an empty log file
             createRecords(1, 35);
             printLogRecords("Log file has been populated with the following records: ");
-            createRecords(36, 70);
+//            createRecords(36, 70);
 
-            logMgr.flush(65);
-            printLogRecords("Log file has been populated with the following records: ");
+//            logMgr.flush(65);
+//            printLogRecords("Log file has been populated with the following records: ");
         }
         catch (Exception e) {
             System.out.println(e);

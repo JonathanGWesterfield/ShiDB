@@ -40,7 +40,7 @@ public class LogMgr {
      * write the page to disk and overwrite the page. Records are written right to left.
      * This allows the iterator to read left to write (newest to oldest record).
      * @param logRecord The record that needs to get written to the disk
-     * @return Latest Log Sequencing Number.
+     * @return Latest Log Sequencing Number (LSN).
      */
     public synchronized int append(byte[] logRecord) throws Exception {
         int pageBoundary = logPage.getInt(0); // offset of most recently added record
