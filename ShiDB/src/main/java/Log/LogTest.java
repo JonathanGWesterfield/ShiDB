@@ -22,13 +22,15 @@ public class LogTest {
 
             clearTheFile(ShiDB.constructFileDirName(LOG), ShiDB.constructLogFileName(LOG));
 
-//            printLogRecords("The initial empty log file:");  //print an empty log file
+            printLogRecords("The initial empty log file:");  //print an empty log file
+            System.out.println();
             createRecords(1, 35);
-            printLogRecords("Log file has been populated with the following records: ");
-//            createRecords(36, 70);
 
-//            logMgr.flush(65);
-//            printLogRecords("Log file has been populated with the following records: ");
+            printLogRecords("Log file has been populated with the following records: ");
+            createRecords(36, 70);
+
+            logMgr.flush(65);
+            printLogRecords("Log file has been populated with the following records: ");
         }
         catch (Exception e) {
             System.out.println(e);
@@ -38,17 +40,19 @@ public class LogTest {
 
     /*
     Clears the log file for testing. Otherwise, log file will throw buffer underflow exception
+    since the existing file contents of the last test run will interfere with the current run.
      */
     public static void clearTheFile(String testDir, String filename) throws IOException {
-        FileWriter fwOb = new FileWriter(new File(testDir, filename), false);
-        PrintWriter pwOb = new PrintWriter(fwOb, false);
-        pwOb.flush();
-        pwOb.close();
-        fwOb.close();
+        File testLogFile = new File(testDir, filename);
+
+        if (testLogFile.exists() && testLogFile.isFile())
+            testLogFile.delete();
+
+        testLogFile.createNewFile();
     }
 
     private static void printLogRecords(String msg) {
-        System.out.println(msg);
+        System.out.println("\n" + msg);
 
         Iterator<byte[]> iter = logMgr.iterator();
 
@@ -64,7 +68,7 @@ public class LogTest {
     }
 
     private static void createRecords(int start, int end) throws Exception {
-        System.out.println("Creating Records: ");
+        System.out.println("\nCreating Records: ");
         String recordStr = null;
         int recordNum = 0;
 
