@@ -12,7 +12,7 @@ public class FileTest {
 
     public static void main(String[] args) {
         try {
-            ShiDB shiDB = new ShiDB(ShiDBModules.FILE, 400);
+            ShiDB shiDB = new ShiDB(ShiDBModules.FILE, 400).init();
 
             FileMgr fm = shiDB.getFileMgr();
             BlockId blk = new BlockId("testfile", 2);

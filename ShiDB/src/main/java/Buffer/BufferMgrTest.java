@@ -7,15 +7,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import File.BlockId;
 import Startup.ShiDB;
-import Error.BufferException;
-import Error.EnumBufferError;
+import Error.BufferAbortException;
 
 public class BufferMgrTest {
     public static void main(String[] args) {
         String testDBFileName = ShiDB.constructDBFileName(BUFFER_MANAGER);
 
         ShiDB shiDB = new ShiDB(BUFFER_MANAGER, 400)
-                .bufferSize(3);
+                .bufferSize(3).init();
 
         BufferMgr bufferMgr = shiDB.getBufferMgr();
 
@@ -36,10 +35,14 @@ public class BufferMgrTest {
             System.out.println("Attempting to pin block 3...");
             buffArr[5] = bufferMgr.pin(new BlockId(testDBFileName, 3));
         }
-        catch (BufferException e) {
-            System.out.println(EnumBufferError.NO_BUFFER_AVAILABLE + ": " + e.getMessage());
+        catch (BufferAbortException e) {
+            System.out.println(e.getMessage());
+        }
+        catch (RuntimeException e) {
+            System.out.println("RUNTIME EXCEPTION: " + e.getMessage());
         }
 
+        System.out.println("Couldn't pin block 3 because no available buffers. Unpinning a buffer");
         bufferMgr.unPin(buffArr[2]);
         buffArr[5] = bufferMgr.pin(new BlockId(testDBFileName, 3)); // now this time, it will work
 
@@ -47,7 +50,7 @@ public class BufferMgrTest {
         for(int i = 0; i < buffArr.length; i++) {
             Buffer buff = buffArr[i];
             if (!Optional.of(buff).isPresent())
-                System.out.printf("Buffer[%i] pinned to block: %s\n", i, buff.getBlock().get().toString());
+                System.out.printf("Buffer[%i] pinned to block: %s\n", i, buff.getBlock().toString());
         }
     }
 }

@@ -17,7 +17,7 @@ public class LogTest {
 
     public static void main(String[] args) {
         try {
-            ShiDB shiDB = new ShiDB(LOG, 400);
+            ShiDB shiDB = new ShiDB(LOG, 400).init();
             logMgr = shiDB.getLogMgr();
 
             clearTheFile(ShiDB.constructFileDirName(LOG), ShiDB.constructLogFileName(LOG));

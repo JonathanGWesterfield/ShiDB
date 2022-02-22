@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import File.BlockId;
 import File.FileMgr;
 import Log.LogMgr;
-import Error.BufferException;
+import Error.BufferAbortException;
 
 /**
  * Implements the niave buffer replacement strategy of simpleDB. Child classes of this one will
@@ -16,7 +16,7 @@ public class BufferMgr {
     protected LogMgr logMgr;
     protected AtomicInteger numAvailableBuffs;
     protected Buffer[] bufferPool;
-    protected static final long MAX_WAIT_TIME = 10000; // 10 SECONDS
+    protected static final long MAX_WAIT_TIME = 2000; // 10 SECONDS
 
     /**
      * Default constructor for inheritance.
@@ -36,6 +36,11 @@ public class BufferMgr {
         this.fileMgr = fileMgr;
         this.logMgr = logMgr;
         this.numAvailableBuffs = new AtomicInteger(numBuffers);
+        bufferPool = new Buffer[numAvailableBuffs.intValue()];
+        for (int i = 0; i < bufferPool.length; i++)
+            bufferPool[i] = new Buffer(this.fileMgr, this.logMgr);
+
+        return; // unnecessary return statement for debugging
     }
 
     /**
@@ -72,8 +77,78 @@ public class BufferMgr {
         }
     }
 
-    public Buffer pin(BlockId blk) throws BufferException {
+    /**
+     * Attempts to pin the specified block/page into a buffer to be used by the client. Will
+     * attempt to pin and wait until the specified MAX_WAIT_TIME has elapsed. If has waited
+     * for longer than the MAX_WAIT_TIME, will return an exception.
+     * @param blk The block that we are trying to read and pin into a buffer
+     * @return The buffer that was read from the specified block
+     */
+    public synchronized Buffer pin(BlockId blk) {
+//        try {
+            long startTimestamp = System.currentTimeMillis();
+
+            Buffer buffer = attemptToPin(blk);
+            while(buffer == null && !hasWaitedTooLong(startTimestamp)) {
+//                wait(500);
+                buffer = attemptToPin(blk);
+            }
+
+            if(buffer == null)
+                throw new BufferAbortException("Client has waited too long. Aborting pin() operation!");
+
+            return buffer;
+//        }
+//        catch (InterruptedException e) {
+//            throw new BufferAbortException(e);
+//        }
+    }
+
+    /**
+     * Attempts to pin the specified block to a buffer. Will attempt to search the available buffers
+     * for a buffer that coincidentally has the exact same block pinned. If no block is found, will
+     * attempt to pin the block to an available unpinned buffer. If that still doesn't work, will
+     * return null so the client can wait for a buffer to become available.
+     * @param blk The block we want to pin to the buffer.
+     * @return A successfully pinned buffer. Null if no buffer is available for pinning.
+     */
+    public Buffer attemptToPin(BlockId blk) {
+        Buffer buffer = findExistingBuffer(blk);
+
+        if (buffer == null) { // no buffer with same block pinned
+            buffer = chooseUnpinnedBuffer();
+            if (buffer == null) // no available buffers for new block to pin to
+                return null;
+            buffer.assignToBlock(blk);
+        }
+
+        // if buffer isn't pinned, we need to pin it to remove it from available buffers to replace
+        if(!buffer.isPinned())
+            numAvailableBuffs.decrementAndGet();
+        buffer.pin();
+
+        return buffer;
+    }
+
+    private Buffer findExistingBuffer(BlockId blk) {
+        for (Buffer buffer : bufferPool)
+            if (buffer.getBlock() != null && buffer.getBlock().equals(blk))
+                return buffer;
+
         return null;
+    }
+
+    /**
+     * Niavely tries to find an unpinned buffer by simply parsing through the buffer pool
+     * array.
+     * @return An unpinned buffer. Null if no unpinned buffer was found.
+     */
+    private Buffer chooseUnpinnedBuffer() {
+        for (Buffer buffer : bufferPool)
+            if(!buffer.isPinned())
+                return buffer;
+
+        return null; // indicates that there was no available buffer
     }
 
     /**

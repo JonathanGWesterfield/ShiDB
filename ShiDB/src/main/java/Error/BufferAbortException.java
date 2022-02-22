@@ -5,7 +5,12 @@ public class BufferAbortException extends RuntimeException {
         super(errorMessage);
     }
 
+    public BufferAbortException(Throwable err) {
+        super(err);
+    }
+
     public BufferAbortException(String errorMessage, Throwable err) {
         super(errorMessage, err);
     }
+
 }

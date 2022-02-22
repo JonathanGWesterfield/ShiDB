@@ -23,10 +23,10 @@ public class Buffer {
     public Buffer(FileMgr fileMgr, LogMgr logMgr) {
         this.fileMgr = fileMgr;
         this.logMgr = logMgr;
+        pins = new AtomicInteger(0);
         txNum = -1; // if -1, means no change to this block
         lsn = -1;
         contents = new Page(fileMgr.getBlockSize());
-
     }
 
     /**
@@ -38,12 +38,11 @@ public class Buffer {
     }
 
     /**
-     * Gives and Optional of the block assigned to this buffer. Block is optional because
-     * the block could be null.
+     * Gives the block assigned to this buffer.
      * @return The block assigned to this buffer, if there is one.
      */
-    public Optional<BlockId> getBlock() {
-        return Optional.of(block);
+    public BlockId getBlock() {
+        return block;
     }
 
     /**
@@ -85,7 +84,7 @@ public class Buffer {
      * the new block is read in.
      * @param block The specific block to read from the disk
      */
-    private void assignToBlock(BlockId block) {
+    protected void assignToBlock(BlockId block) {
         flush();
         this.block = block;
         fileMgr.read(block, contents);

@@ -14,6 +14,7 @@ public class ShiDB {
 
     private int blockSize;
     private int bufferSize;
+    private ShiDBModules testingModule;
 
     private FileMgr fileMgr;
     private LogMgr logMgr;
@@ -32,22 +33,32 @@ public class ShiDB {
      */
     public ShiDB(ShiDBModules module, int blockSize) {
         this.blockSize = blockSize;
+        this.testingModule = module;
+    }
 
+    /**
+     * Must be called after the instructor to fully instantiate the class. This
+     * function is needed due to limitations with the builder pattern.
+     */
+    public ShiDB init() {
         try {
-            switch (module) {
-                case FILE:
-                    constructFileTestShiDB();
-                    break;
-                case LOG:
-                    constructLogTestShiDB();
-                    break;
-                case BUFFER:
-                    constructBufferTestShiDB();
-                    break;
+            switch (testingModule) {
+            case FILE:
+                constructFileTestShiDB();
+                break;
+            case LOG:
+                constructLogTestShiDB();
+                break;
+            case BUFFER:
+            case BUFFER_MANAGER:
+                constructBufferTestShiDB();
+                break;
             }
         } catch (Exception e) {
             System.out.println(e);
         }
+
+        return this;
     }
 
     /**
