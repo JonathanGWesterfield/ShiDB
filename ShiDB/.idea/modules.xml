@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ShiDB.iml" filepath="$PROJECT_DIR$/.idea/ShiDB.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ShiDB.iml" filepath="$PROJECT_DIR$/ShiDB.iml" />
     </modules>
   </component>
 </project>
