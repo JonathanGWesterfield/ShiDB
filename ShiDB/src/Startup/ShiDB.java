@@ -98,8 +98,8 @@ public class ShiDB {
 
         if (!Optional.of(bufferSize).isPresent())
             throw new Exception("Buffer size for the buffer manager has not been set!");
-        
-        bufferMgr = new BufferMgr(fileMgr, logMgr, bufferSize);
+
+        bufferMgr = StartupHelper.getCorrectBuffer(fileMgr, logMgr, bufferSize);
     }
 
     /**

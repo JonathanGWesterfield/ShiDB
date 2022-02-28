@@ -1,7 +1,7 @@
 package Constants;
 
 public enum BufferMgrReplacementStrategies {
-    NIAVE,
+    DEFAULT, // niave strategies
     FIFO,
     LRU,
     CLOCK

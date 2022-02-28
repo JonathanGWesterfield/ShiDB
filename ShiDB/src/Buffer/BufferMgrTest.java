@@ -49,8 +49,8 @@ public class BufferMgrTest {
         System.out.println("Final Buffer Allocation: ");
         for(int i = 0; i < buffArr.length; i++) {
             Buffer buff = buffArr[i];
-            if (!Optional.of(buff).isPresent())
-                System.out.printf("Buffer[%i] pinned to block: %s\n", i, buff.getBlock().toString());
+            if (buff != null)
+                System.out.printf("Buffer[%d] pinned to block: %s\n", i, buff.getBlock().toString());
         }
     }
 }
