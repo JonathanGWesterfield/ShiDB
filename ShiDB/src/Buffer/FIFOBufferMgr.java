@@ -1,9 +1,8 @@
 package Buffer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +22,7 @@ public class FIFOBufferMgr extends BufferMgr {
      * Using a {@link LinkedBlockingQueue} instead of a {@link LinkedList} for
      * thread safety
      */
-    private LinkedBlockingQueue availableBuffers;
+    private ArrayBlockingQueue bufferPool;
     private HashMap<Integer, Buffer> buffersInUse;
 
     /**
@@ -36,20 +35,13 @@ public class FIFOBufferMgr extends BufferMgr {
      */
     public FIFOBufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         super(fileMgr, logMgr, numBuffers);
-        availableBuffers = new LinkedBlockingQueue(numBuffers);
+        bufferPool = new ArrayBlockingQueue(numBuffers, true);
 
         // need to keep track of pinned buffers in case a client wants to pin an existing block
         buffersInUse = new HashMap<>();
 
-        try {
-            for (int i = 0; i < numBuffers; i++)
-                availableBuffers.put(new Buffer(this.fileMgr, this.logMgr));
-        }
-        catch (InterruptedException e) {
-            /* Catching the interrupted exception instead of throwing since we shouldn't have
-                any size restrictions for the queue on creation */
-            System.out.println("Got interrupted from waiting too long since queue is full on startup!");
-        }
+        for (int i = 0; i < numBuffers; i++)
+            bufferPool.add(new Buffer(this.fileMgr, this.logMgr));
     }
 
     /**
@@ -59,7 +51,7 @@ public class FIFOBufferMgr extends BufferMgr {
      */
     @Override
     public int numAvailableBuffers(){
-        return availableBuffers.size();
+        return bufferPool.size();
     }
 
     /**
@@ -69,8 +61,8 @@ public class FIFOBufferMgr extends BufferMgr {
     @Override
     public synchronized void flushAll(int txNum) {
         Buffer buffer = null;
-        while(availableBuffers.iterator().hasNext()) {
-            buffer = (Buffer)availableBuffers.iterator().next();
+        while(bufferPool.iterator().hasNext()) {
+            buffer = (Buffer) bufferPool.iterator().next();
             if (buffer.modifyingTx() == txNum) {
                 buffer.flush();
             }
@@ -88,17 +80,11 @@ public class FIFOBufferMgr extends BufferMgr {
         buffer.unPin();
 
         if (!buffer.isPinned()) {
-            availableBuffers.add(buffer);
-            buffersInUse.remove(buffer);
+            bufferPool.add(buffer);
+            buffersInUse.remove(buffer.getBlock().hashCode());
             notifyAll();
         }
     }
-
-//    public synchronized Buffer pin(BlockId blk) {
-//        Buffer buffer = attemptToPin(blk);
-//
-//        return buffer;
-//    }
 
     /**
      * Attempts to find a Buffer to pin the block to. Will first try to find a buffer
@@ -116,17 +102,22 @@ public class FIFOBufferMgr extends BufferMgr {
             if (buffer == null) { // no buffer with same block pinned
                 // No need to check if buffer is null because if no available buffers,
                 // then will catch InterruptedException
-                buffer = (Buffer)availableBuffers.poll(super.MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
-                buffer.assignToBlock(blk);
+                buffer = (Buffer) bufferPool.poll(super.MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
+
+                if(buffer == null)
+                    throw new BufferAbortException("Client has waited too long. Aborting pin() operation!");
             }
 
+            buffer.assignToBlock(blk);
             buffer.pin();
-            buffersInUse.put(blk.hashCode(), buffer);
+
+            if(!buffersInUse.containsKey(blk.hashCode()))
+                buffersInUse.put(blk.hashCode(), buffer);
 
             return buffer;
         }
         catch(InterruptedException e) {
-            throw new BufferAbortException("Client has waited too long. Aborting pin() operation!");
+            throw new BufferAbortException("Client got interrupted while waiting. Aborting pin() operation!");
         }
     }
 

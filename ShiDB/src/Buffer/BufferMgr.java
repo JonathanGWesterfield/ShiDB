@@ -32,6 +32,8 @@ public abstract class BufferMgr {
         this.logMgr = logMgr;
         this.numAvailableBuffs = new AtomicInteger(numBuffers);
 
+
+
         return; // unnecessary return statement for debugging
     }
 

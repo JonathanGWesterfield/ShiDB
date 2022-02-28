@@ -8,6 +8,7 @@ import Log.LogMgr;
 import Error.BufferAbortException;
 
 public class DefaultBufferMgr extends BufferMgr {
+
     private Buffer[] bufferPool;
 
     /**
