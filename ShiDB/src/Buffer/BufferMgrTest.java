@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import File.BlockId;
+import Startup.Config;
 import Startup.ShiDB;
 import Error.BufferAbortException;
 
@@ -17,32 +18,46 @@ public class BufferMgrTest {
                 .bufferSize(3).init();
 
         BufferMgr bufferMgr = shiDB.getBufferMgr();
+        System.out.printf("Starting Buffer Manager Test using the %s replacement strategy!\n\n", Config.getConfigs().getBufferMgrReplacementStrategy());
 
         Buffer[] buffArr = new Buffer[6];
+        System.out.println("Pinning Buffer: 0...");
         buffArr[0] = bufferMgr.pin(new BlockId(testDBFileName, 0));
-        buffArr[1] = bufferMgr.pin(new BlockId(testDBFileName, 1));
-        buffArr[2] = bufferMgr.pin(new BlockId(testDBFileName, 2));
+        System.out.printf("Available Buffers: %d\n\n", bufferMgr.numAvailableBuffers());
 
+        System.out.println("Pinning Buffer: 1...");
+        buffArr[1] = bufferMgr.pin(new BlockId(testDBFileName, 1));
+        System.out.printf("Available Buffers: %d\n\n", bufferMgr.numAvailableBuffers());
+
+        System.out.println("Pinning Buffer: 2...");
+        buffArr[2] = bufferMgr.pin(new BlockId(testDBFileName, 2));
+        System.out.printf("Available Buffers: %d\n\n", bufferMgr.numAvailableBuffers());
+
+        System.out.println("Unpinning Buffer 1...");
         bufferMgr.unPin(buffArr[1]);
+        System.out.printf("Available Buffers: %d\n\n", bufferMgr.numAvailableBuffers());
         buffArr[1] = null;
 
+        System.out.println("Pinning Buffer: 0...");
         buffArr[3] = bufferMgr.pin(new BlockId(testDBFileName, 0));
-        buffArr[4] = bufferMgr.pin(new BlockId(testDBFileName, 1));
+        System.out.printf("Available Buffers: %d\n\n", bufferMgr.numAvailableBuffers());
 
-        System.out.println("Available Buffers: " + bufferMgr.numAvailableBuffers());
+        System.out.println("Pinning Buffer: 1...");
+        buffArr[4] = bufferMgr.pin(new BlockId(testDBFileName, 1));
+        System.out.printf("Available Buffers: %d\n\n", bufferMgr.numAvailableBuffers());
 
         try {
-            System.out.println("Attempting to pin block 3...");
+            System.out.println("Attempting to pin block 3...\n");
             buffArr[5] = bufferMgr.pin(new BlockId(testDBFileName, 3));
         }
         catch (BufferAbortException e) {
-            System.out.println(e.getMessage());
+            System.out.println(e.getMessage() + "\n");
         }
         catch (RuntimeException e) {
             System.out.println("RUNTIME EXCEPTION: " + e.getMessage());
         }
 
-        System.out.println("Couldn't pin block 3 because no available buffers. Unpinning a buffer");
+        System.out.println("Couldn't pin block 3 because no available buffers. Unpinning a buffer\n");
         bufferMgr.unPin(buffArr[2]);
         buffArr[5] = bufferMgr.pin(new BlockId(testDBFileName, 3)); // now this time, it will work
 

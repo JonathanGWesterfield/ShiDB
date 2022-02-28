@@ -5,79 +5,57 @@ import java.util.concurrent.atomic.AtomicInteger;
 import File.BlockId;
 import File.FileMgr;
 import Log.LogMgr;
-import Error.BufferAbortException;
 
 /**
  * Implements the niave buffer replacement strategy of simpleDB. Child classes of this one will
  * override and implement different/better functions depending on their buffer replacement strategy.
  */
-public class BufferMgr {
+public abstract class BufferMgr {
     protected FileMgr fileMgr;
     protected LogMgr logMgr;
     protected AtomicInteger numAvailableBuffs;
-    protected Buffer[] bufferPool;
-    protected static final long MAX_WAIT_TIME = 2000; // 10 SECONDS
+    protected static final long MAX_WAIT_TIME = 10000; // 10 SECONDS
 
     /**
-     * Default constructor for inheritance.
+     * Default Constructor
      */
-    public BufferMgr() {
-
-    }
+    public BufferMgr() {}
 
     /**
-     * Constructor for buffer manager. Only 1 buffer manager is created
-     * during DB startup.
-     *  @param fileMgr File manager to read blocks from disk into pages
-     * @param logMgr Log manager to log events in case of system crash.
-     * @param numBuffers The size of the buffer pool.
+     * Constructor. Populates the buffer pool with array of buffers
+     * @param fileMgr
+     * @param logMgr
+     * @param numBuffers
      */
     public BufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         this.fileMgr = fileMgr;
         this.logMgr = logMgr;
         this.numAvailableBuffs = new AtomicInteger(numBuffers);
-        bufferPool = new Buffer[numAvailableBuffs.intValue()];
-        for (int i = 0; i < bufferPool.length; i++)
-            bufferPool[i] = new Buffer(this.fileMgr, this.logMgr);
 
         return; // unnecessary return statement for debugging
     }
 
-
-
     /**
-     * Returns the number of available unpinned buffers in the buffer pool.
+     * Gets the number of buffers that are currently available for pinning to a block.
+     * @return The number of available buffers
      */
-    public int numAvailableBuffers() {
-        return numAvailableBuffs.intValue();
-    }
+    abstract int numAvailableBuffers();
 
     /**
      * Flushes all of the buffers in the BufferMgr to the disk. Is synchronized to avoid
      * modifications to get into the pages from concurrent writes from clients
-     * @param txNum PUT THIS HERE WHEN I FIGURE IT OUT
+     * @param txNum The transaction number that we need to flush up to
      */
-    public synchronized void flushAll(int txNum) {
-        for(Buffer buffer : bufferPool)
-            if (buffer.modifyingTx() == txNum)
-                buffer.flush();
-    }
+    abstract void flushAll(int txNum);
 
     /**
      * Unpins the page from the specified buffer. Since multiple clients can pin a page
      * to the buffer, this does not guarantee that the buffer is completely unpinned
-     * and eligible for replacement. If the buffer is completely unpinned, the BufferMgr
-     * updates the number of buffers eligible for replacement.
+     * and eligible for replacement.
      * @param buffer The buffer to unpin the page from
      */
-    public synchronized void unPin(Buffer buffer) {
-        buffer.unPin();
+    abstract void unPin(Buffer buffer);
 
-        if (!buffer.isPinned()) {
-            numAvailableBuffs.incrementAndGet();
-            notifyAll();
-        }
-    }
 
     /**
      * Attempts to pin the specified block/page into a buffer to be used by the client. Will
@@ -86,82 +64,5 @@ public class BufferMgr {
      * @param blk The block that we are trying to read and pin into a buffer
      * @return The buffer that was read from the specified block
      */
-    public synchronized Buffer pin(BlockId blk) {
-//        try {
-            long startTimestamp = System.currentTimeMillis();
-
-            Buffer buffer = attemptToPin(blk);
-            while(buffer == null && !hasWaitedTooLong(startTimestamp)) {
-//                wait(500);
-                buffer = attemptToPin(blk);
-            }
-
-            if(buffer == null)
-                throw new BufferAbortException("Client has waited too long. Aborting pin() operation!");
-
-            return buffer;
-//        }
-//        catch (InterruptedException e) {
-//            throw new BufferAbortException(e);
-//        }
-    }
-
-    /**
-     * Attempts to pin the specified block to a buffer. Will attempt to search the available buffers
-     * for a buffer that coincidentally has the exact same block pinned. If no block is found, will
-     * attempt to pin the block to an available unpinned buffer. If that still doesn't work, will
-     * return null so the client can wait for a buffer to become available.
-     * @param blk The block we want to pin to the buffer.
-     * @return A successfully pinned buffer. Null if no buffer is available for pinning.
-     */
-    public Buffer attemptToPin(BlockId blk) {
-        Buffer buffer = findExistingBuffer(blk);
-
-        if (buffer == null) { // no buffer with same block pinned
-            buffer = chooseUnpinnedBuffer();
-            if (buffer == null) // no available buffers for new block to pin to
-                return null;
-            buffer.assignToBlock(blk);
-        }
-
-        // if buffer isn't pinned, we need to pin it to remove it from available buffers to replace
-        if(!buffer.isPinned())
-            numAvailableBuffs.decrementAndGet();
-        buffer.pin();
-
-        return buffer;
-    }
-
-    private Buffer findExistingBuffer(BlockId blk) {
-        for (Buffer buffer : bufferPool)
-            if (buffer.getBlock() != null && buffer.getBlock().equals(blk))
-                return buffer;
-
-        return null;
-    }
-
-    /**
-     * Niavely tries to find an unpinned buffer by simply parsing through the buffer pool
-     * array.
-     * @return An unpinned buffer. Null if no unpinned buffer was found.
-     */
-    private Buffer chooseUnpinnedBuffer() {
-        for (Buffer buffer : bufferPool)
-            if(!buffer.isPinned())
-                return buffer;
-
-        return null; // indicates that there was no available buffer
-    }
-
-    /**
-     * Calculates if a client has been waiting too long. If client has been waiting too long,
-     * client should be notified with an Error.BufferAbortException.
-     * @param startTimeMillis The time the client started waiting for a page to become available to pin
-     * @return true if client has waited too long, false otherwise
-     */
-    private boolean hasWaitedTooLong(long startTimeMillis) {
-        return System.currentTimeMillis() - startTimeMillis > MAX_WAIT_TIME;
-    }
-
-
+    abstract Buffer pin(BlockId blk);
 }

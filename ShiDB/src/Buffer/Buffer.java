@@ -19,6 +19,7 @@ public class Buffer {
     private int txNum;
     private BlockId block;
     private int lsn;
+    private long timeReadIn;
 
     public Buffer(FileMgr fileMgr, LogMgr logMgr) {
         this.fileMgr = fileMgr;
@@ -89,6 +90,7 @@ public class Buffer {
         this.block = block;
         fileMgr.read(block, contents);
         pins.set(0);
+        timeReadIn = System.currentTimeMillis();
     }
 
     /**
@@ -120,5 +122,14 @@ public class Buffer {
         }
 
         return pins.decrementAndGet();
+    }
+
+    /**
+     * Gets the age of the block read into the buffer. Used for the FIFO replacement strategy
+     * that uses the "time read in" value to replace the oldest buffer.
+     * @return
+     */
+    public long getTimeReadIn() {
+        return timeReadIn;
     }
 }

@@ -38,12 +38,16 @@ public class Config {
      * Singleton getter instance.
      * @return Instance of this class
      */
-    public static Config getConfigs() throws IOException {
-        if (singletonConfigInstance == null) {
-            synchronized (Config.class) {
-                if (singletonConfigInstance == null)
-                    singletonConfigInstance = new Config();
+    public static Config getConfigs() {
+        try {
+            if (singletonConfigInstance == null) {
+                synchronized (Config.class) {
+                    if (singletonConfigInstance == null)
+                        singletonConfigInstance = new Config();
+                }
             }
+        } catch (IOException e) {
+            System.err.println(e);
         }
 
         return singletonConfigInstance;
