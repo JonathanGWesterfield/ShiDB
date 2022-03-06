@@ -22,6 +22,11 @@ public enum ShiDBModules {
     BUFFER_MANAGER,
 
     /**
+     * Module for the {@link Transaction.Transaction} class
+     */
+    TRANSACTION_MANAGER,
+
+    /**
      * The entire ShiDB system - all modules
      */
     SHIDB;

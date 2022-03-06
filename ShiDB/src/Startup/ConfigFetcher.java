@@ -13,7 +13,7 @@ import Constants.BufferMgrReplacementStrategies;
  * Singleton instance to just fetch the configs on what modules to instantiate on startup.
  * This class is ugly as hell, but I just want an easy way to pull certain settings without
  * having to get into dependency injection and "the right way to do this". I only care about
- * learning about the database,
+ * learning about the database.
  */
 public class ConfigFetcher {
 

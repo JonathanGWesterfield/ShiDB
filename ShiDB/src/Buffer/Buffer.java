@@ -11,8 +11,9 @@ import Log.LogMgr;
 import Error.EnumBufferError;
 import Error.BufferException;
 
+
 /**
- * Comparator class to be used for priority queues (in the {@link LRUBufferMgr}).
+ * Comparator class to be used for priority queues (in the {@link FIFOBufferMgr}).
  * Enables priority queue use with the {@link Buffer} class.
  */
 class BufferFIFOComparator implements Comparator<Buffer> {
@@ -28,10 +29,24 @@ class BufferFIFOComparator implements Comparator<Buffer> {
     }
 }
 
+/**
+ * Comparator class to be used for priority queues (in the {@link LRUBufferMgr}).
+ * Enables priority queue use with the {@link Buffer} class.
+ */
 class BufferLRUComparator implements Comparator<Buffer> {
 
     public int compare(Buffer buffer1, Buffer buffer2) {
         return buffer1.compareTimeUnpinned(buffer2);
+    }
+}
+
+/**
+ * Comparator class to be used for priority queues (in the {@link LowestLsnBufferMgr}).
+ * Enables priority queue use with the {@link Buffer} class.
+ */
+class BufferLsnComparator implements Comparator<Buffer> {
+    public int compare(Buffer buffer1, Buffer buffer2) {
+        return buffer1.compareLsn(buffer2);
     }
 }
 
@@ -208,6 +223,17 @@ public class Buffer  {
         Buffer buffer = (Buffer)obj;
 
         return (timeReadIn < buffer.getTimeReadIn()) ? -1 : ((timeReadIn == buffer.getTimeReadIn()) ? 0 : 1);
+    }
+
+    /**
+     * Used for the comparator needed for a priority queue (used in {@link LowestLsnBufferMgr})
+     * which compares the buffer by the log sequence number
+     * @param obj Buffer object to compare against
+     * @return -1 if smaller than obj, 0 if equal, 1 if greater than.
+     */
+    public int compareLsn(Object obj) {
+        Buffer buffer = (Buffer) obj;
+        return (lsn < buffer.getLsn()) ? -1 : ((lsn == buffer.getLsn()) ? 0 : 1);
     }
 }
 
