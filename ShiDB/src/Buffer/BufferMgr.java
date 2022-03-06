@@ -5,16 +5,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import File.BlockId;
 import File.FileMgr;
 import Log.LogMgr;
+import Startup.ConfigFetcher;
 
 /**
- * Implements the niave buffer replacement strategy of simpleDB. Child classes of this one will
- * override and implement different/better functions depending on their buffer replacement strategy.
+ * Child classes of this one will override and implement different
+ * functions depending on their buffer replacement strategy.
  */
 public abstract class BufferMgr {
     protected FileMgr fileMgr;
     protected LogMgr logMgr;
     protected AtomicInteger numAvailableBuffs;
-    protected static final long MAX_WAIT_TIME = 10000; // 10 SECONDS
+    protected static final long MAX_WAIT_TIME = ConfigFetcher.getConfigs().getBufferMgrPinWaitTime(); // 10 SECONDS
 
     /**
      * Default Constructor
@@ -31,8 +32,6 @@ public abstract class BufferMgr {
         this.fileMgr = fileMgr;
         this.logMgr = logMgr;
         this.numAvailableBuffs = new AtomicInteger(numBuffers);
-
-
 
         return; // unnecessary return statement for debugging
     }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import File.BlockId;
@@ -15,6 +16,8 @@ import Error.BufferAbortException;
  * To refer to what each function does at a high level, refer to the {@link BufferMgr}
  * class. Javadoc strings for functions in this class will only describe what
  * each function does specific to the FIFO replacement strategy.
+ *
+ * "Chooose the unpinned buffer whose contents were *replaced* least recently"
  */
 public class FIFOBufferMgr extends BufferMgr {
 
@@ -22,7 +25,7 @@ public class FIFOBufferMgr extends BufferMgr {
      * Using a {@link LinkedBlockingQueue} instead of a {@link LinkedList} for
      * thread safety
      */
-    private ArrayBlockingQueue bufferPool;
+    private PriorityBlockingQueue bufferPool;
     private HashMap<Integer, Buffer> buffersInUse;
 
     /**
@@ -35,7 +38,9 @@ public class FIFOBufferMgr extends BufferMgr {
      */
     public FIFOBufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         super(fileMgr, logMgr, numBuffers);
-        bufferPool = new ArrayBlockingQueue(numBuffers, true);
+
+        BufferFIFOComparator comparator = new BufferFIFOComparator();
+        bufferPool = new PriorityBlockingQueue(numBuffers, comparator);
 
         // need to keep track of pinned buffers in case a client wants to pin an existing block
         buffersInUse = new HashMap<>();
@@ -100,8 +105,6 @@ public class FIFOBufferMgr extends BufferMgr {
 
         try {
             if (buffer == null) { // no buffer with same block pinned
-                // No need to check if buffer is null because if no available buffers,
-                // then will catch InterruptedException
                 buffer = (Buffer) bufferPool.poll(super.MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
 
                 if(buffer == null)

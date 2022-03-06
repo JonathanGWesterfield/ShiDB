@@ -39,4 +39,11 @@ public class BlockId {
     public int hashCode() {
         return this.toString().hashCode();
     }
+
+    public int compareTo(Object obj) {
+        BlockId blk = (BlockId)obj;
+
+        return (blkNum < blk.getBlkNum()) ? -1 : ((blkNum == blk.getBlkNum()) ? 0 : 1);
+
+    }
 }

@@ -1,5 +1,6 @@
 package Buffer;
 
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,7 +11,36 @@ import Log.LogMgr;
 import Error.EnumBufferError;
 import Error.BufferException;
 
-public class Buffer {
+/**
+ * Comparator class to be used for priority queues (in the {@link LRUBufferMgr}).
+ * Enables priority queue use with the {@link Buffer} class.
+ */
+class BufferFIFOComparator implements Comparator<Buffer> {
+
+    /**
+     * Compare method needed for the comparator interface.
+     * @param buffer1 1st buffer to compare to 2nd buffer
+     * @param buffer2 2nd buffer to compare to 1st buffer
+     * @return -1 if 1st is less than second, 0 if equal, 1 if 1st is greater
+     */
+    public int compare(Buffer buffer1, Buffer buffer2) {
+        return buffer1.compareTimeReadIn(buffer2);
+    }
+}
+
+class BufferLRUComparator implements Comparator<Buffer> {
+
+    public int compare(Buffer buffer1, Buffer buffer2) {
+        return buffer1.compareTimeUnpinned(buffer2);
+    }
+}
+
+/**
+ * Buffer holds a page and a block that has been read into that page. Also keeps track
+ * of what clients currently have the buffer pinned and the modifying transaction number and
+ * log sequence number of the modifying transaction
+ */
+public class Buffer  {
 
     private FileMgr fileMgr;
     private LogMgr logMgr;
@@ -19,6 +49,7 @@ public class Buffer {
     private int txNum;
     private BlockId block;
     private int lsn;
+    private long timeUnpinned;
     private long timeReadIn;
 
     public Buffer(FileMgr fileMgr, LogMgr logMgr) {
@@ -121,7 +152,12 @@ public class Buffer {
             throw new BufferException(EnumBufferError.CANNOT_UNPIN_BUFFER_HAS_NO_PINS.toString());
         }
 
-        return pins.decrementAndGet();
+        pins.decrementAndGet();
+
+        if (!this.isPinned())
+            timeUnpinned = System.currentTimeMillis();
+
+        return pins.get();
     }
 
     /**
@@ -132,4 +168,47 @@ public class Buffer {
     public long getTimeReadIn() {
         return timeReadIn;
     }
+
+    /**
+     * Gets the time that this buffer was last completely unpinned. Used for the LRU
+     * replacement strategy .
+     * @return
+     */
+    public long getTimeUnpinned() {
+        return timeUnpinned;
+    }
+
+    /**
+     * Returns the log sequence number of the modifying transaction. Used to determine
+     * the most recent change to the buffer for replacement strategies
+     * @return The lsn of the modifying transaction. -1 if unmodified
+     */
+    public int getLsn() {
+        return lsn;
+    }
+
+    /**
+     * Used for the comparator needed for a priority queue (used in {@link LRUBufferMgr})
+     * @param obj Buffer object to compare against
+     * @return -1 if smaller than obj, 0 if equal, 1 if greater than.
+     */
+    public int compareTimeUnpinned(Object obj) {
+        Buffer buffer = (Buffer)obj;
+
+        return (timeUnpinned < buffer.getTimeUnpinned()) ? -1 : ((timeUnpinned == buffer.getTimeUnpinned()) ? 0 : 1);
+    }
+
+    /**
+     * Used for the comparator needed for a priority queue (used in {@link FIFOBufferMgr})
+     * which compares the buffer by the time read in
+     * @param obj Buffer object to compare against
+     * @return -1 if smaller than obj, 0 if equal, 1 if greater than.
+     */
+    public int compareTimeReadIn(Object obj) {
+        Buffer buffer = (Buffer)obj;
+
+        return (timeReadIn < buffer.getTimeReadIn()) ? -1 : ((timeReadIn == buffer.getTimeReadIn()) ? 0 : 1);
+    }
 }
+
+

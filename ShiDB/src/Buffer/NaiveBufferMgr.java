@@ -7,7 +7,7 @@ import Log.LogMgr;
 
 import Error.BufferAbortException;
 
-public class DefaultBufferMgr extends BufferMgr {
+public class NaiveBufferMgr extends BufferMgr {
 
     private Buffer[] bufferPool;
 
@@ -18,7 +18,7 @@ public class DefaultBufferMgr extends BufferMgr {
      * @param logMgr Log manager to log events in case of system crash.
      * @param numBuffers The size of the buffer pool.
      */
-    public DefaultBufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
+    public NaiveBufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         super(fileMgr, logMgr, numBuffers);
 
         bufferPool = new Buffer[numAvailableBuffs.intValue()];

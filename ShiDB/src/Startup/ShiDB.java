@@ -2,7 +2,6 @@ package Startup;
 
 import java.io.File;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import Buffer.BufferMgr;
 import Constants.ShiDBModules;
@@ -99,7 +98,7 @@ public class ShiDB {
         if (!Optional.of(bufferSize).isPresent())
             throw new Exception("Buffer size for the buffer manager has not been set!");
 
-        bufferMgr = StartupHelper.getCorrectBuffer(fileMgr, logMgr, bufferSize);
+        bufferMgr = StartupHelper.getCorrectBufferMgr(fileMgr, logMgr, bufferSize);
     }
 
     /**

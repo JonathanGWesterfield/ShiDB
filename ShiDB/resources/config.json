@@ -1,3 +1,6 @@
 {
-    "BufferMgrReplacementStrategies": "DEFAULT"
+    "BufferMgrReplacementStrategies": "FIFO",
+    "Replacement Strategies": ["DEFAULT", "FIFO", "LRU", "CLOCK"],
+    "BufferMgrPinWaitTime": 10000,
+    "SizeOfBufferPool": 1000
 }
