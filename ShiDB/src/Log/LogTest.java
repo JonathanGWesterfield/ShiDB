@@ -68,7 +68,7 @@ public class LogTest {
     }
 
     private static void createRecords(int start, int end) throws Exception {
-        System.out.println("\nCreating Records: ");
+        System.out.println("\nCreating LogRecord: ");
         String recordStr = null;
         int recordNum = 0;
 

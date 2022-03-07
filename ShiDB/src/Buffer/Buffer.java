@@ -1,7 +1,6 @@
 package Buffer;
 
 import java.util.Comparator;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import File.Page;
@@ -41,7 +40,7 @@ class BufferLRUComparator implements Comparator<Buffer> {
 }
 
 /**
- * Comparator class to be used for priority queues (in the {@link LowestLsnBufferMgr}).
+ * Comparator class to be used for priority queues (in the {@link LsnBufferMgr}).
  * Enables priority queue use with the {@link Buffer} class.
  */
 class BufferLsnComparator implements Comparator<Buffer> {
@@ -226,13 +225,14 @@ public class Buffer  {
     }
 
     /**
-     * Used for the comparator needed for a priority queue (used in {@link LowestLsnBufferMgr})
-     * which compares the buffer by the log sequence number
+     * Used for the comparator needed for a priority queue (used in {@link LsnBufferMgr})
+     * which compares the buffer by the log sequence number and whether buffer is unmodified or not.
      * @param obj Buffer object to compare against
      * @return -1 if smaller than obj, 0 if equal, 1 if greater than.
      */
     public int compareLsn(Object obj) {
         Buffer buffer = (Buffer) obj;
+
         return (lsn < buffer.getLsn()) ? -1 : ((lsn == buffer.getLsn()) ? 0 : 1);
     }
 }

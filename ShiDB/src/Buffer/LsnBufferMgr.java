@@ -16,17 +16,17 @@ import Error.BufferAbortException;
  * buffer replacement strategy. This class is nearly identical to the
  * {@link FIFOBufferMgr} class. The only difference is the priority queue with
  * the comparator operation being done with the lsn of the buffer that's pinned.
- * Lower lsn means the buffer is older, and is a better candidate for replacement.
- * Also takes into account buffers that have been modified
+ * Lower lsn means the buffer is older, and is a better candidate for replacement. lsn
+ * with number of -1 also means unmodified so this strategy also prefers unmodified
+ * buffers for replacement.
  *
  * "Page replacement strategy that chooses unmodified pages over modified ones"
  *
  * "Chooses the modified page having the lowest LSN implement this strategy"
  */
-public class LowestLsnBufferMgr extends BufferMgr {
+public class LsnBufferMgr extends BufferMgr {
 
     private PriorityBlockingQueue bufferPool;
-    private PriorityBlockingQueue modifiedBufferPool;
     private HashMap<Integer, Buffer> buffersInUse;
 
     /**
@@ -37,7 +37,7 @@ public class LowestLsnBufferMgr extends BufferMgr {
      * @param logMgr Log manager to log events in case of system crash.
      * @param numBuffers The size of the buffer pool.
      */
-    public LowestLsnBufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
+    public LsnBufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         super(fileMgr, logMgr, numBuffers);
 
         Comparator<Buffer> comparator = new BufferLsnComparator();
@@ -84,10 +84,7 @@ public class LowestLsnBufferMgr extends BufferMgr {
         buffer.unPin();
 
         if (!buffer.isPinned()) {
-            if (buffer.getLsn() > 0)
-                modifiedBufferPool.add(buffer);
-            else
-                bufferPool.add(buffer);
+            bufferPool.add(buffer);
             buffersInUse.remove(buffer.getBlock().hashCode());
         }
     }
@@ -100,16 +97,12 @@ public class LowestLsnBufferMgr extends BufferMgr {
      * @param blk The block that we are trying to read and pin into a buffer
      * @return The buffer that was read from the specified block
      */
-    public Buffer pin(BlockId blk) {
+    public synchronized Buffer pin(BlockId blk) {
         Buffer buffer = findExistingBuffer(blk);
 
         try {
             if (buffer == null) { // no buffer with same block pinned
-                if (bufferPool.size() < 1) // need to choose from modified buffers if no unmodified ones
-                    buffer = (Buffer) modifiedBufferPool.poll(super.MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
-                else
-                    buffer = (Buffer) bufferPool.poll(super.MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
-
+                buffer = (Buffer) bufferPool.poll(super.MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
 
                 if(buffer == null)
                     throw new BufferAbortException("Client has waited too long. Aborting pin() operation!");

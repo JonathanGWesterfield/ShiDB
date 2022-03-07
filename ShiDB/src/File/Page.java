@@ -55,22 +55,40 @@ public class Page {
     }
 
     /**
+     * Gets the {@link Byte} at the offset position from this page's buffer.
+     * @param offset The position in the buffer where the byte is located.
+     * @return The byte at the offset location.
+     */
+    public byte getByte(int offset) {
+        return buffer.get(offset);
+    }
+
+    /**
      * Gets the short at the offset position from this page's buffer and then
      * converts it into a boolean.
      * @param offset The position in the buffer where the boolean (short) is located.
      * @return The boolean at the offset location.
      */
     public boolean getBoolean(int offset) {
-        return getShort(offset) == 1;
+        return getByte(offset) == 1;
     }
 
     /**
      * Gets the long at the offset position from this page's buffer.
      * @param offset The position in the buffer where the long is located.
-     * @return
+     * @return The long at the offset location
      */
     public long getLong(int offset) {
         return buffer.getLong(offset);
+    }
+
+    /**
+     * Gets the double at the offfset position from this page's buffer.
+     * @param offset The position in the buffer where the double is located
+     * @return The double at the offset location
+     */
+    public double getDouble(int offset) {
+        return buffer.getDouble(offset);
     }
 
     /**
@@ -154,8 +172,8 @@ public class Page {
      * @param bool The boolean we want to insert into the buffer.
      */
     public void setBoolean(int offset, boolean bool) {
-        short shortBool = bool ? (short)1 : (short)0;
-        setShort(offset, shortBool);
+        byte byteBool = bool ? (byte)1 : (byte)0;
+        setByte(offset, byteBool);
     }
 
     /**
@@ -181,12 +199,30 @@ public class Page {
     }
 
     /**
+     * Store a {@link Byte} in the buffer at the specified offset position.
+     * @param offset The position in the buffer we want to insert at.
+     * @param val The byte we want to insert into the buffer
+     */
+    public void setByte(int offset, byte val) {
+        buffer.put(offset, val);
+    }
+
+    /**
      * Store a long in the buffer at the specified offset position.
      * @param offset The position in the buffer we want to insert at.
      * @param val The long we want to insert into the buffer.
      */
     public void setLong(int offset, long val) {
         buffer.putLong(offset, val);
+    }
+
+    /**
+     * Store a double in the buffer at the specified offset position.
+     * @param offset The position in the buffer we want to insert at.
+     * @param val The double we want to insert into the buffer
+     */
+    public void setDouble(int offset, double val) {
+        buffer.putDouble(offset, val);
     }
 
     /**

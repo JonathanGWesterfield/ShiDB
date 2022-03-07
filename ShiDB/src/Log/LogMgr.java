@@ -37,7 +37,7 @@ public class LogMgr {
     /**
      * To the user, the record is written to the disk in the log file. What really happens is
      * this function writes records into the log page. If the record doesn't fit into the page,
-     * write the page to disk and overwrite the page. Records are written right to left.
+     * write the page to disk and overwrite the page. LogRecord are written right to left.
      * This allows the iterator to read left to write (newest to oldest record).
      * @param logRecord The record that needs to get written to the disk
      * @return Latest Log Sequencing Number (LSN).

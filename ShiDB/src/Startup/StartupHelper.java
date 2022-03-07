@@ -1,9 +1,9 @@
 package Startup;
 
 import Buffer.BufferMgr;
+import Buffer.LsnBufferMgr;
 import Buffer.NaiveBufferMgr;
 import Buffer.FIFOBufferMgr;
-//import Buffer.LRUBufferMgr;
 import Buffer.LRUBufferMgr;
 import Constants.BufferMgrReplacementStrategies;
 import File.FileMgr;
@@ -28,6 +28,9 @@ public class StartupHelper {
             break;
         case LRU:
             bufferMgr = new LRUBufferMgr(fileMgr, logMgr, numBuffers);
+            break;
+        case LSN:
+            bufferMgr = new LsnBufferMgr(fileMgr, logMgr, numBuffers);
             break;
         default:
             bufferMgr = new NaiveBufferMgr(fileMgr, logMgr, numBuffers); // default niave replacement strategy

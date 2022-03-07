@@ -39,6 +39,9 @@ public class FileTest {
             int pos5 = pos4 + Long.BYTES;
             p1.setDate(pos5, dateTime); // write datetime
 
+            int pos6 = pos5 + Double.BYTES;
+            p1.setDouble(pos6, 3.141593);
+
             fm.write(blk, p1);
 
             Page p2 = new Page(fm.getBlockSize());
@@ -49,13 +52,15 @@ public class FileTest {
             System.out.printf("Page 1 Offset: %d \t Value: %d\n", pos2, p1.getInt(pos2));
             System.out.printf("Page 1 Offset: %d \t Value: %d\n", pos3, p1.getShort(pos3));
             System.out.printf("Page 1 Offset: %d \t Value: %d\n", pos4, p1.getLong(pos4));
-            System.out.printf("Page 1 Offset: %d \t Value: %s\n\n", pos5, p1.getDateTime(pos5).toString());
+            System.out.printf("Page 1 Offset: %d \t Value: %s\n", pos5, p1.getDateTime(pos5).toString());
+            System.out.printf("Page 1 Offset: %d \t Value: %f\n\n", pos6, p1.getDouble(pos6));
 
             System.out.printf("Page 2 Offset: %d \t Value: %s\n", pos1, p2.getString(pos1));
             System.out.printf("Page 2 Offset: %d \t Value: %d\n", pos2, p2.getInt(pos2));
             System.out.printf("Page 2 Offset: %d \t Value: %d\n", pos3, p2.getShort(pos3));
             System.out.printf("Page 2 Offset: %d \t Value: %d\n", pos4, p2.getLong(pos4));
             System.out.printf("Page 2 Offset: %d \t Value: %s\n", pos5, p2.getDateTime(pos5).toString());
+            System.out.printf("Page 2 Offset: %d \t Value: %f\n\n", pos6, p2.getDouble(pos6));
         }
         catch (Exception e) {
             System.out.println(e);
