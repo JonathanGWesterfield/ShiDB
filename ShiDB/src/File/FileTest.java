@@ -37,7 +37,7 @@ public class FileTest {
             p1.setLong(pos4, epoch); // write long
 
             int pos5 = pos4 + Long.BYTES;
-            p1.setDate(pos5, dateTime); // write datetime
+            p1.setDateTime(pos5, dateTime); // write datetime
 
             int pos6 = pos5 + Double.BYTES;
             p1.setDouble(pos6, 3.141593);

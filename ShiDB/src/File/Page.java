@@ -183,7 +183,7 @@ public class Page {
      * @param offset The position in the buffer we want to store this date at.
      * @param dateTime The DateTime we want to store.
      */
-    public void setDate(int offset, LocalDateTime dateTime) {
+    public void setDateTime(int offset, LocalDateTime dateTime) {
         long epoch = dateTime.toEpochSecond(ZoneOffset.UTC);
 
         setLong(offset, epoch);
