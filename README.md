@@ -14,5 +14,7 @@ The ultimate goal is to understand this well enough to try tackling an in-memory
 Maybe a fun follow up project will be a graph database like [FlockDB](https://github.com/twitter-archive/flockdb/tree/master/src/main/scala/com/twitter/flockdb)
 
 
+### Update 2/8/2026
 
+It's been years since I've looked at this project so I'm going to start over. ShiDB-2.0 is where the newest attempt will be. I'm going to leave the original first try alone. Java has also advanced in recent years so I'll be using that latest (v25 I think)
 
