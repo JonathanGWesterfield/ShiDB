@@ -84,10 +84,11 @@ public class Page {
      * Calculates the maximum number of bytes needed for given string. This is convenient when using a simple
      * charset like ASCII, but is absolutely critical for more complex charsets like UTF-16 where between 2 - 4
      * bytes can be used per character. Also accounts for the block size used at the beginning of a block
-     * @param strLen Length of the string being evaluated
+     * @param str The string to evaluate
      * @return The maximum number of bytes needed to properly store a string based on the charset used
      */
-    public static int calcMaxByteLength(int strLen) {
+    public static int calcMaxByteLength(String str) {
+        int strLen = str.length();
         float bytesPerChar = CHARSET.newEncoder().maxBytesPerChar();
         return Integer.BYTES + (strLen * (int)bytesPerChar);
     }
