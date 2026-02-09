@@ -4,6 +4,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * A page holds a single block. This lets the block be read from the disk and modified in memory,
+ * saving us from expensive I/O operations to read/write from the disk
+ */
 public class Page {
     private ByteBuffer byteBuffer;
 
