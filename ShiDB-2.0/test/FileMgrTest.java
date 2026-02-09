@@ -107,7 +107,7 @@ class FileMgrTest {
 
             assertEquals(entry.getValue(), fileMgr.getNumAppends(entry.getKey()));
         }
-        
+
         // Cleanup
         for (Map.Entry<String, Integer> entry: numExpectedAppends.entrySet())
             fileMgr.deleteFile(entry.getKey());

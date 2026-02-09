@@ -125,25 +125,11 @@ public class FileMgr {
     }
 
     /**
-     * Fetches a file and returns the file handler. If no such file exists, one will be created and returned
-     * @param filename Name of the file to fetch/create
-     * @return accessFile File handler to use
-     * @throws IOException
+     * This is a helper function for unit testing. This is an easy way to go through all of the files
+     * opened during runtime, close the connections and delete them. Maybe it'll be used to drop tables
+     * at some point, idk
+     * @param filename
      */
-    private RandomAccessFile fetchFile(String filename) throws IOException {
-        RandomAccessFile accessFile = openFiles.get(filename);
-
-        if (accessFile == null) {
-            File dbTable = new File(dbDirectory, filename);
-
-            // RWS -> Read/Write/OS should not delay disk I/O to optimize disk performance
-            // S ensures that every write operation must be written immediately to the disk
-            accessFile = new RandomAccessFile(dbTable, "rws");
-            openFiles.put(filename, accessFile);
-        }
-        return accessFile;
-    }
-
     public void deleteFile(String filename) {
         try {
             // First need to ensure that the random access file is closed
@@ -156,5 +142,24 @@ public class FileMgr {
             // Since this function is purely used to help with unit testing, don't care if deletion fails
             System.out.println("Failed to delete file: " + filename);
         }
+    }
+
+    /**
+     * Fetches a file and returns the file handler. If no such file exists, one will be created and returned
+     * @param filename Name of the file to fetch/create
+     * @return accessFile File handler to use
+     * @throws IOException
+     */
+    private RandomAccessFile fetchFile(String filename) throws IOException {
+        if (openFiles.containsKey(filename))
+            return openFiles.get(filename);
+
+        File dbTable = new File(dbDirectory, filename);
+
+        // RWS -> Read/Write/OS should not delay disk I/O to optimize disk performance
+        // S ensures that every write operation must be written immediately to the disk
+        RandomAccessFile accessFile = new RandomAccessFile(dbTable, "rws");
+        openFiles.put(filename, accessFile);
+        return accessFile;
     }
 }
