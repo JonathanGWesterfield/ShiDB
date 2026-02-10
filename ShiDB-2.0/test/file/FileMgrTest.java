@@ -1,4 +1,5 @@
 import file.Page;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -160,5 +161,5 @@ class FileMgrTest {
         assertEquals(page1.getDateTime(position3), page2.getDateTime(position3));
         assertEquals(page1.getDouble(position4), page2.getDouble(position4));
     }
-    
+
 }
