@@ -1,6 +1,7 @@
 package server;
 
 import file.FileMgr;
+import log.LogMgr;
 import lombok.Getter;
 
 import java.io.File;
@@ -9,10 +10,14 @@ import java.io.IOException;
 public class ShiDB {
     public static int BLOCK_SIZE = 400;
     public static int BUFFER_SIZE = 8;
-    public static String LOG_FILE = "simpledb.log";
+
+    public static String LOG_FILE = "shidb-2.0.log";
 
     @Getter
     private FileMgr fileMgr;
+
+    @Getter
+    private LogMgr logMgr;
 
 
     /**
@@ -24,5 +29,6 @@ public class ShiDB {
     public ShiDB(String dirname, int blocksize) throws IOException {
         File dbDirectory = new File(dirname);
         this.fileMgr = new FileMgr(dbDirectory, blocksize);
+        this.logMgr = new LogMgr(fileMgr, LOG_FILE);
     }
 }

@@ -13,6 +13,10 @@ public class LogMgr {
     private FileMgr fileMgr;
     private Page logPage;
     private BlockId currentBlock;
+
+    // The book originally had the LSN be an int, but this would be problematic in a real database due to
+    // integer overflow. It may bite me in the ass later, but I'm changing this to a long to avoid that
+    // Surely we can't easily overlflow a 64-bit number, right? ...... Right?
     private long latestLSN = 0; // LSN -> Log Sequence Number
     private long lastSavedLSN = 0;
 
@@ -47,6 +51,7 @@ public class LogMgr {
     }
 
     public Iterator<byte[]> iterator() {
+        // Flush first to ensure that all logs to iterate through are on the disk
         flush();
         return new LogIterator(fileMgr, currentBlock);
     }
@@ -59,5 +64,30 @@ public class LogMgr {
         return block;
     }
 
-    public int append(byte[] record) { return Integer.MAX_VALUE; }
+    /**
+     * Places the log records in the page from right to left instead of normal. This allows the LogIterator class
+     * to read records from newest to oldest (reverse order).
+     */
+    public synchronized long appendRecord(byte[] logRecord) {
+        // Since we read right to left in the log page, the var boundary contains the current offset location
+        // we are evaluating in the record (most recently added record). We store this offset as the first 4 bytes
+        // (integer size) of the page so we know where to start
+        int boundary = logPage.getInt(0);
+        int recordSize = logRecord.length;
+        int bytesNeeded = recordSize + Integer.BYTES;
+
+        // If the record doesn't fit, move it to a new block
+        if (boundary - bytesNeeded < Integer.BYTES) {
+            flush();
+            currentBlock = appendNewBlock();
+            boundary = logPage.getInt(0);
+        }
+
+        int recordPosition = boundary - bytesNeeded;
+        logPage.setBytes(recordPosition, logRecord);
+        logPage.setInt(0, recordPosition);
+        latestLSN++;
+
+        return latestLSN;
+    }
 }

@@ -83,7 +83,7 @@ public class Page {
 
     // This check likely isn't needed as long as the buffer manager is implemented correctly
     public void validateValueWillFit(int offset, int byteLength) {
-        if (byteBuffer.position(offset).remaining() > byteLength)
+        if (byteBuffer.position(offset).remaining() >= byteLength)
             return;
 
         String errMsg = String.format(

@@ -6,7 +6,8 @@ import file.Page;
 
 import java.util.Iterator;
 
-public class LogIterator implements Iterator<byte[]> {
+// This class is package private since only the LogMgr class should interact with it.
+class LogIterator implements Iterator<byte[]> {
     private FileMgr fileMgr;
     private BlockId block;
     private Page page;

@@ -10,6 +10,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/** TODO:
+ * I didn't realize that java.io.File was so outdate and modern libraries have replaced it. I need to refactor this
+ * file to use the new java.nio.Files and java.nio.Path classes
+ *
+ * Maybe also need to replace RandomAccessFile with the FileChannel + SeekableByteChannel combo
+ *
+ * Reference:
+ * https://grok.com/share/c2hhcmQtNA_1e6aa0a9-8fdf-469c-b655-831ea840b398
+ */
+
 public class FileMgr {
     private File dbDirectory;
 
