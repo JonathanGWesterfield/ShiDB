@@ -3,6 +3,10 @@ package file;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 /**
  * A page holds a single block. This lets the block be read from the disk and modified in memory,
@@ -32,11 +36,43 @@ public class Page {
     }
 
     private void validateOffset(int offset) {
-        if (offset >= 0)
+        if (offset >= 0 && offset < byteBuffer.limit())
             return;
 
         throw new IllegalArgumentException(
                 "Provided offset: " + offset + " - Cannot have a negative offset to the byte buffer!");
+    }
+
+    public short getShort(int offset) {
+        return byteBuffer.getShort(offset);
+    }
+
+    public byte getByte(int offset) {
+        return byteBuffer.get(offset);
+    }
+
+    public boolean getBoolean(int offset) {
+        return getByte(offset) == 1;
+    }
+
+    public long getLong(int offset) {
+        return byteBuffer.getLong(offset);
+    }
+
+    public double getDouble(int offset) {
+        return byteBuffer.getDouble(offset);
+    }
+
+    /**
+     * Since the DateTime is actually stored as a long (the epoch), this gets
+     * the long at the offset position from this page's buffer. It then converts the
+     * epoch back into a LocalDateTime object in the system's default timezone.
+     * @param offset The position in the buffer where the long (epoch) is located.
+     * @return The datetime object in the running system's default timezone.
+     */
+    public LocalDateTime getDateTime(int offset) {
+        long epoch = getLong(offset);
+        return LocalDateTime.ofInstant(Instant.ofEpochSecond(epoch), ZoneId.systemDefault());
     }
 
     public int getInt(int offset) {
@@ -45,8 +81,19 @@ public class Page {
         return byteBuffer.getInt(offset);
     }
 
+    // This check likely isn't needed as long as the buffer manager is implemented correctly
+    public void validateValueWillFit(int offset, int byteLength) {
+        if (byteBuffer.position(offset).remaining() > byteLength)
+            return;
+
+        String errMsg = String.format(
+                "Attempting to insert at offset %d failed because the object of %s bytes is too large!", offset, byteLength);
+        throw new RuntimeException(errMsg);
+    }
+
     public void setInt(int offset, int val) {
         validateOffset(offset);
+        validateValueWillFit(offset, Integer.BYTES);
 
         byteBuffer.putInt(offset, val);
     }
@@ -65,10 +112,59 @@ public class Page {
 
     public void setBytes(int offset, byte[] val) {
         validateOffset(offset);
+        validateValueWillFit(offset, val.length);
 
         byteBuffer.position(offset);
         byteBuffer.putInt(val.length);
         byteBuffer.put(val);
+    }
+
+    public void setBoolean(int offset, boolean bool) {
+        // No need to validate offset and size since setByte() does that for us
+        byte byteBool = bool ? (byte)1 : (byte)0;
+        setByte(offset, byteBool);
+    }
+
+    /**
+     * Actually converts the DateTime format into epoch seconds for more compact storage.
+     * Can be retrieved and reconverted back into LocalDate object. Date is first
+     * converted to UTC time and then stored as epoch seconds.
+     * @param offset The position in the buffer we want to store this date at.
+     * @param dateTime The DateTime we want to store.
+     */
+    public void setDateTime(int offset, LocalDateTime dateTime) {
+        // No need to validate offset and size since setLong() does that for us
+        long epoch = dateTime.toEpochSecond(ZoneOffset.UTC);
+
+        setLong(offset, epoch);
+    }
+
+    public void setShort(int offset, short val) {
+        validateOffset(offset);
+        validateValueWillFit(offset, Short.BYTES);
+
+        byteBuffer.putShort(offset, val);
+    }
+
+    public void setByte(int offset, byte val) {
+        validateOffset(offset);
+        validateValueWillFit(offset, Byte.BYTES);
+
+        byteBuffer.put(offset, val);
+    }
+
+    public void setLong(int offset, long val) {
+        validateOffset(offset);
+        validateValueWillFit(offset, Long.BYTES);
+
+        byteBuffer.putLong(offset, val);
+    }
+
+    public void setDouble(int offset, double val) {
+        validateOffset(offset);
+        validateValueWillFit(offset, Double.BYTES);
+
+        byteBuffer.putDouble(offset, val);
     }
 
     public String getString(int offset) {

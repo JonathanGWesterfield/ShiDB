@@ -38,7 +38,7 @@ public class FileMgr {
 
     public int getNumAppends(String filename) {
         if (!numFilesAppended.containsKey(filename))
-            throw new RuntimeException("Filename " + filename + " hase no associated appends!");
+            throw new RuntimeException("Filename " + filename + " has no associated appends!");
 
         return numFilesAppended.get(filename);
     }
@@ -55,7 +55,7 @@ public class FileMgr {
         // Create the database directory structure if it's brand new
         if (isNew)
             if (!dbDirectory.mkdirs())
-                throw new IOException("Failed to create the needed database directory structure for a fresh dataabase!");
+                throw new IOException("Failed to create the needed database directory structure for a fresh database!");
 
         for (String filename : dbDirectory.list())
             if (filename.startsWith("temp"))
