@@ -57,6 +57,10 @@ class FileMgrTest {
     @Test
     @DisplayName("Check the number of writes to disk are being tracked correctly")
     public void testFileWritesBeingTracked() {
+        // The startup of other portions of the database (logMgr, bufferMgr, etc) also perform reads and writes
+        // To avoid those breaking this unit test, we will reset the counter to 0
+        fileMgr.resetFileMgrStatistics();
+
         BlockId blk = new BlockId("testfile", 2);
         Page page1 = new Page(fileMgr.getBlocksize());
 
@@ -69,12 +73,16 @@ class FileMgrTest {
         for (int i = 0; i < numExpectedWrites; i++)
             fileMgr.writePageToDisk(blk, page1);
 
-        assertEquals(numExpectedWrites, fileMgr.getNumBlocksWritten());
+        assertEquals(numExpectedWrites, (int) fileMgr.getBlocksWriteCounter());
     }
 
     @Test
     @DisplayName("Check the number of reads from disk are being tracked correctly")
     public void testFileReadsBeingTracked() {
+        // The startup of other portions of the database (logMgr, bufferMgr, etc) also perform reads and writes
+        // To avoid those breaking this unit test, we will reset the counter to 0
+        fileMgr.resetFileMgrStatistics();
+
         BlockId blk = new BlockId("testfile", 2);
         Page page1 = new Page(fileMgr.getBlocksize());
 
@@ -90,7 +98,7 @@ class FileMgrTest {
         for (int i = 0; i < numExpectedReads; i++)
             fileMgr.readFromDiskToPage(blk, page1);
 
-        assertEquals(numExpectedReads, fileMgr.getNumBlocksRead());
+        assertEquals(numExpectedReads, (int) fileMgr.getBlocksReadCounter());
     }
 
     @Test

@@ -8,7 +8,7 @@ import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class FileMgr {
     private File dbDirectory;
@@ -20,20 +20,20 @@ public class FileMgr {
     private boolean isNew;
 
     // Can't autogenerate lombok getter function because it doesn't call AtomicInteger.get()
-    private AtomicInteger numBlocksWritten;
-    private AtomicInteger numBlocksRead;
+    private AtomicLong blocksWriteCounter;
+    private AtomicLong blocksReadCounter;
 
     @Getter
     private ConcurrentHashMap<String, Integer> numFilesAppended;
 
     private Map<String, RandomAccessFile> openFiles = new HashMap<>();
 
-    public int getNumBlocksWritten() {
-        return numBlocksWritten.get();
+    public long getBlocksWriteCounter() {
+        return blocksWriteCounter.get();
     }
 
-    public int getNumBlocksRead() {
-        return numBlocksRead.get();
+    public long getBlocksReadCounter() {
+        return blocksReadCounter.get();
     }
 
     public int getNumAppends(String filename) {
@@ -46,8 +46,10 @@ public class FileMgr {
     public FileMgr(File dbDirectory, int blocksize) throws IOException {
         this.dbDirectory = dbDirectory;
         this.blocksize = blocksize;
-        this.numBlocksRead = new AtomicInteger(0);
-        this.numBlocksWritten = new AtomicInteger(0);
+
+        // Initialize the statistics for the file manager
+        this.blocksReadCounter = new AtomicLong(0);
+        this.blocksWriteCounter = new AtomicLong(0);
         this.numFilesAppended = new ConcurrentHashMap<>();
 
         isNew = !dbDirectory.exists();
@@ -71,11 +73,19 @@ public class FileMgr {
             // They say Java doesn't have pointers, but references are basically the same thing
             accessFile.getChannel().read(page.getContents());
 
-            numBlocksRead.incrementAndGet();
+            blocksReadCounter.incrementAndGet();
         }
         catch (IOException e) {
             throw new RuntimeException("Cannot read block: " + block);
         }
+    }
+
+    // Helper function for unit tests. Startup of the database impacts the read/write statistics. Sections like the
+    // logMgr also perform reads and writes on startup, so we need this helper to reset the counters for unit tests
+    public void resetFileMgrStatistics() {
+        this.blocksReadCounter = new AtomicLong(0);
+        this.blocksWriteCounter = new AtomicLong(0);
+        this.numFilesAppended = new ConcurrentHashMap<>();
     }
 
     public synchronized void writePageToDisk(BlockId block, Page page) {
@@ -85,7 +95,7 @@ public class FileMgr {
 
             accessFile.getChannel().write(page.getContents());
 
-            numBlocksWritten.incrementAndGet();
+            blocksWriteCounter.incrementAndGet();
         }
         catch (IOException e) {
             throw new RuntimeException("Cannot write block: " + block);
