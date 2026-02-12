@@ -10,8 +10,9 @@ package buffer;
  * I would like to use exceptions, but they really aren't meant for that and they are very computationally expensive
  * to generate the stack traces, so let's try creating a custom class to indicate hasSucceeded, or a need to retry
  *
- * This is very similar to the LeakyAbstractions Github library, but I didn't want to import another Jar for something
- * this small (unless I need to use this in lots of places in which case I'm might replace this)
+ * This is very similar to the LeakyAbstractions Github library, (https://github.com/LeakyAbstractions/result)
+ * but I didn't want to import another Jar for something this small (unless I need to use this in lots of places
+ * in which case I'm might replace this)
  */
 
 public record Attempt<T>(boolean hasSucceeded, T value) {
@@ -22,10 +23,6 @@ public record Attempt<T>(boolean hasSucceeded, T value) {
 
     public static <T> Attempt<T> succeeded(T value) {
         return new Attempt<>(true, value);
-    }
-
-    public static <T> Attempt<T> retry() {
-        return new Attempt<>(false, null);
     }
 
     // Identical to retry, but the function semantics make this a bit more readable for cases where we don't
