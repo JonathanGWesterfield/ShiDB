@@ -45,7 +45,7 @@ public class LogMgr {
         lastSavedLSN = latestLSN;
     }
 
-    public void flush(int lsn) {
+    public void flush(long lsn) {
         if (lsn >= lastSavedLSN)
             flush();
     }
