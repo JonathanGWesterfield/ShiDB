@@ -1,0 +1,4 @@
+{
+  "buffer_mgr_pin_max_wait_time_milliseconds": 2000,
+  "buffer_mgr_pin_poll_step_milliseconds": 100
+}

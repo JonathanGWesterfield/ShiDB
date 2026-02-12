@@ -4,6 +4,7 @@ import buffer.BufferMgr;
 import file.FileMgr;
 import log.LogMgr;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class ShiDB {
     @Getter
     private LogMgr logMgr;
 
-    @Getter
+    @Getter @Setter
     private BufferMgr bufferMgr;
 
 
