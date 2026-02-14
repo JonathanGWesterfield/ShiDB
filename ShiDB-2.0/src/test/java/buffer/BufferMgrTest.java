@@ -2,6 +2,8 @@ package buffer;
 
 import error.BufferAbortException;
 import file.BlockId;
+import file.FileMgr;
+import file.Page;
 import org.junit.jupiter.api.*;
 import server.ConfigFetcher;
 import server.ShiDB;
@@ -17,6 +19,7 @@ public class BufferMgrTest {
     private BufferMgr bufferMgr;
     private int numInitialBuffers;
     private long bufferMgrUnitTestWaitTime;
+    private final String testFileName = "bufferMgrTestFile";
 
     @BeforeEach
     void setUp() throws IOException {
@@ -26,16 +29,20 @@ public class BufferMgrTest {
         numInitialBuffers = ConfigFetcher.getSizeOfBufferPool();
         this.shiDB = new ShiDB("BufferMgr-unit-test", ConfigFetcher.getDBFileBlockSize(), numInitialBuffers);
         bufferMgr = shiDB.getBufferMgr();
-    }
 
-    @AfterEach
-    void tearDown() {
+        BlockId block = new BlockId(testFileName, 0);
+        FileMgr fileMgr = shiDB.getFileMgr();
+        Page page = new Page(fileMgr.getBlocksize());
+
+        int position1 = 80;
+        page.setInt(position1, 345);
+        fileMgr.writePageToDisk(block, page);
     }
 
     @Test
     @DisplayName("Test the pin function")
     public void testPin() {
-        Buffer testBuffer = bufferMgr.pinBuffer(new BlockId("testfile", 0));
+        Buffer testBuffer = bufferMgr.pinBuffer(new BlockId(testFileName, 0));
 
         assertEquals(numInitialBuffers - 1, bufferMgr.getNumAvailableBuffers());
         assertTrue(testBuffer.isPinned());
@@ -56,7 +63,7 @@ public class BufferMgrTest {
         // Now do another setup that tests that the buffer is unPinned AND the num available counter is updated
         bufferMgr = new BufferMgr(shiDB.getFileMgr(), shiDB.getLogMgr(), numInitialBuffers);
 
-        Buffer testBuffer2 = bufferMgr.pinBuffer(new BlockId("testfile", 0));
+        Buffer testBuffer2 = bufferMgr.pinBuffer(new BlockId(testFileName, 0));
         bufferMgr.unpinBuffer(testBuffer2);
 
         assertFalse(testBuffer2.isPinned());
@@ -124,5 +131,42 @@ public class BufferMgrTest {
         assertEquals(block1, buffer1.getBlock());
         assertEquals(block3, buffer2.getBlock());
         assertEquals(block4, buffer3.getBlock());
+    }
+
+    @Test
+    public void testBufferLifecycle() {
+        BufferMgr bufferMgr = shiDB.getBufferMgr();
+        int offset = 80;
+
+        // Same block as in the @setup function
+        BlockId block = new BlockId(testFileName, 0);
+
+        Buffer buffer1 = bufferMgr.pinBuffer(block);
+        Page page1 = buffer1.getContents();
+
+        int num = page1.getInt(offset);
+
+        // This modification will get written to disk
+        page1.setInt(offset, num + 1);
+        buffer1.setModified(1, 0);
+        bufferMgr.unpinBuffer(buffer1);
+
+        // One of these pins should flush buffer1 to the disk
+        Buffer buffer2 = bufferMgr.pinBuffer(new BlockId(testFileName, 2));
+        bufferMgr.pinBuffer(new BlockId(testFileName, 3));
+        bufferMgr.pinBuffer(new BlockId(testFileName, 4));
+
+        bufferMgr.unpinBuffer(buffer2);
+
+        buffer2 = bufferMgr.pinBuffer(new BlockId(testFileName, 0));
+        Page page2 = buffer2.getContents();
+
+        // Check that the value we wrote actually got flushed to disk and reloaded properly
+        assertEquals(num + 1, page2.getInt(offset));
+
+        // This won't get written to disk because the LSN is 0
+        page2.setInt(offset, 42069);
+        buffer2.setModified(1, 0);
+        bufferMgr.unpinBuffer(buffer2);
     }
 }

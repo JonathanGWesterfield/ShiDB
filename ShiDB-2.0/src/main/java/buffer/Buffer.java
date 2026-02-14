@@ -16,6 +16,7 @@ public class Buffer {
     @Getter
     private BlockId block = null; // Checking for Null is an atrocity and I hate it. Gonna add a "has block" function
 
+    @Getter
     private int pins = 0;
 
     @Getter
