@@ -1,11 +1,13 @@
 package server;
 
+import buffer.BufferSelectionStrategy;
 import lombok.Getter;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.core.JacksonException;
 
 import java.io.File;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Map;
 
@@ -50,6 +52,25 @@ public class ConfigFetcher {
             fetcherInstance = new ConfigFetcher();
 
         return fetcherInstance;
+    }
+
+    public static BufferSelectionStrategy getBufferMgrSelectionStrategy() {
+        try {
+            String configStrategy = getConfigs().configMap.get("buffer_mgr_selection_strategy").toString();
+            return BufferSelectionStrategy.valueOf(configStrategy);
+        }
+        catch(IllegalArgumentException iae) {
+            String validStrategies = "";
+            for (BufferSelectionStrategy strategy : BufferSelectionStrategy.values())
+                validStrategies += "\"" + strategy + "\" ";
+
+            String configStrategy = getConfigs().configMap.get("buffer_mgr_selection_strategy").toString();
+            String errorMsg = String.format("The \"buffer_mgr_selection_strategy\" field contains an unrecognized value: %s. Allowed values: %s", configStrategy, validStrategies);
+            throw new IllegalArgumentException(errorMsg);
+        }
+        catch(NullPointerException npe) {
+            return BufferSelectionStrategy.NAIVE;
+        }
     }
 
     public static int getDBFileBlockSize() {

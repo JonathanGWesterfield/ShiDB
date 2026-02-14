@@ -1,4 +1,11 @@
 {
+    "buffer_mgr_selection_strategy": "NAIVE",
+    "_selection_strategies": [
+        "NAIVE",
+        "FIFO",
+        "LRU",
+        "CLOCK"
+    ],
     "buffer_mgr_pin_max_wait_time_milliseconds": 2000,
     "buffer_mgr_pin_poll_step_milliseconds": 100,
     "size_of_buffer_pool": 3,
