@@ -53,7 +53,7 @@ class BufferTest {
         testBuffer.pin();
         assertTrue(testBuffer.isPinned());
         assertEquals(3, testBuffer.getPins());
-        assertNotEquals(0, testBuffer.getLastTimePinned());
+        assertNotEquals(0, testBuffer.getLastTimePinnedNano());
     }
 
     @Test
@@ -68,6 +68,6 @@ class BufferTest {
         testBuffer.unpin();
         assertFalse(testBuffer.isPinned());
         assertEquals(0, testBuffer.getPins());
-        assertNotEquals(0, testBuffer.getLastTimeUnpinned());
+        assertNotEquals(0, testBuffer.getLastTimeUnpinnedNano());
     }
 }

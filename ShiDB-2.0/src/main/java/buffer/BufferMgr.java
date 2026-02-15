@@ -4,34 +4,44 @@ import error.BufferAbortException;
 import file.BlockId;
 import file.FileMgr;
 import log.LogMgr;
+import lombok.Getter;
+import lombok.Setter;
 import server.ConfigFetcher;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BufferMgr {
 
-    enum bufferSelectionStrategy {
-        NAIVE, // Choose the first unpinned buffer it finds
-        FIFO, // Choose the unpinned buffer whose contents were unpinned least recently (pinned -> lowest sys time)
-        LRU, // Choose the unpinned buffer whose contents were unpinned least recently (unpinned -> lowest syst time)
-        RING_BUFFER // Scan buffers sequentially  from last replaced buffer; choose first unpinned buffer
-    }
-
-    // TODO: Create an pinned and unpinned buffer pool. Unpinned needs to be a blocking priority queue to support all
-    //  of the different buffer selection strategies
+    // Adding a getter to assist with unit testing, but no other package should ever directly access this member
+    @Getter
     private ArrayList<Buffer> bufferPool;
 
     private AtomicInteger numAvailableBuffers;
+
+    @Getter @Setter
+    private BufferSelectionStrategy unpinnedBufferselectionStrategy;
+
+    // Only used if the buffer choice strategy is the RING buffer strategy
+    // Needed to keep track of where we are in the array so we can keep track of where we are and circle back to
+    // the beginning if we reach the end
+    private int ringBufferIndex = Integer.MIN_VALUE;
+
     private static final long MAX_TIME_WAIT_FOR_PIN_MILLISECONDS = ConfigFetcher.getBufferMgrMaxWaitTime();
     private static final long WAIT_TIME_STEP_MILLISECONDS = ConfigFetcher.getBufferMgrPollStepTime();
 
     public BufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
+        unpinnedBufferselectionStrategy = ConfigFetcher.getBufferMgrSelectionStrategy();
         bufferPool = new ArrayList<>();
         numAvailableBuffers = new AtomicInteger(numBuffers);
 
-        for (int i = 0; i < numBuffers; i++)
-            bufferPool.add(new Buffer(fileMgr, logMgr));
+        for (int i = 0; i < numBuffers; i++) {
+            Buffer buff = new Buffer(fileMgr, logMgr);
+            buff.setPoolIndex(i);
+            bufferPool.add(buff);
+        }
     }
 
     public int getNumAvailableBuffers() {
@@ -75,7 +85,7 @@ public class BufferMgr {
     private Attempt<Buffer> tryToPin(BlockId block) {
         Attempt<Buffer> attemptFindExisting = findExistingBuffer(block);
 
-        Buffer buffer = attemptFindExisting.value();
+        Buffer buffer;
         if (attemptFindExisting.hasFailed()) {
             Attempt<Buffer> attemptChooseUnpinnedBuffer = chooseUnPinnedBuffer();
             if (attemptChooseUnpinnedBuffer.hasFailed())
@@ -83,6 +93,9 @@ public class BufferMgr {
 
             buffer = attemptChooseUnpinnedBuffer.value();
             buffer.assignToBlock(block);
+        }
+        else {
+            buffer = attemptFindExisting.value();
         }
 
         if (!buffer.isPinned())
@@ -104,6 +117,15 @@ public class BufferMgr {
     }
 
     private Attempt<Buffer> chooseUnPinnedBuffer() {
+        return switch (unpinnedBufferselectionStrategy) {
+            case BufferSelectionStrategy.FIFO -> chooseUnpinnedBufferFIFOStrategy();
+            case BufferSelectionStrategy.LRU -> chooseUnpinnedBufferLRUStrategy();
+            case BufferSelectionStrategy.RING_BUFFER -> chooseUnpinnedBufferRingStrategy();
+            default -> chooseUnpinnedBufferNaiveStrategy();
+        };
+    }
+
+    private Attempt<Buffer> chooseUnpinnedBufferNaiveStrategy() {
         for (Buffer buffer : bufferPool) {
             if (!buffer.isPinned())
                 return Attempt.succeeded(buffer);
@@ -116,9 +138,61 @@ public class BufferMgr {
         return Attempt.failed();
     }
 
+    // Choose the buffer with the oldest pin time (lowest timestamp on last pinned time)
+    private Attempt<Buffer> chooseUnpinnedBufferFIFOStrategy() {
+        Optional<Buffer> fifoBuffer =  bufferPool.stream()
+                .filter(buffer -> !buffer.isPinned())
+                .min(Comparator.comparing(Buffer::getLastTimePinnedNano));
+
+        return fifoBuffer.map(Attempt::succeeded).orElseGet(Attempt::failed);
+    }
+
+    // Choose the buffer with the oldest UNpinned time (lowest timestamp on last unpinned time)
+    private Attempt<Buffer> chooseUnpinnedBufferLRUStrategy() {
+        Optional<Buffer> lruBuffer = bufferPool.stream()
+                .filter(buffer -> !buffer.isPinned())
+                .min(Comparator.comparing(Buffer::getLastTimeUnpinnedNano));
+
+        return lruBuffer.map(Attempt::succeeded).orElseGet(Attempt::failed);
+    }
+
+    private Attempt<Buffer> chooseUnpinnedBufferRingStrategy() {
+        // If this is the first iteration of the Ring strategy, initialize our index placeholder
+        if (ringBufferIndex == Integer.MIN_VALUE)
+            ringBufferIndex = 0;
+
+        int currentIndex = ringBufferIndex;
+        Buffer currBuffer = bufferPool.get(ringBufferIndex);
+
+        // If the first element we looked at is unpinned, then return it. If not, start cycling through the ring
+        if (!currBuffer.isPinned())
+            return Attempt.succeeded(currBuffer);
+
+        while(currBuffer.isPinned()) {
+            currentIndex++;
+
+            // If we get to the end, cycle back to the beginning
+            if (currentIndex > bufferPool.size() - 1)
+                currentIndex = 0;
+
+            // We cycled through the entire buffer and found nothing
+            if (currentIndex == ringBufferIndex)
+                return Attempt.failed();
+
+            currBuffer = bufferPool.get(currentIndex);
+            if (!currBuffer.isPinned())
+                break;
+        }
+        // If we exited the loop, then that means we found a buffer to return. Otherwise, we would've returned from
+        // this function with Attempt.failed()
+
+        // We want to make sure that we start from the next buffer in the buffer pool instead of this current one
+        // the next time we look for an unpinned buffer
+        ringBufferIndex = currentIndex + 1;
+        return Attempt.succeeded(currBuffer);
+    }
+
     private boolean hasWaitedTooLong(long startTime) {
         return System.currentTimeMillis() - startTime > MAX_TIME_WAIT_FOR_PIN_MILLISECONDS;
     }
-
-
 }

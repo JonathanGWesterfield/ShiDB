@@ -5,6 +5,7 @@ import file.FileMgr;
 import file.Page;
 import log.LogMgr;
 import lombok.Getter;
+import lombok.Setter;
 
 public class Buffer {
     private FileMgr fileMgr;
@@ -19,11 +20,18 @@ public class Buffer {
     @Getter
     private int pins = 0;
 
+    // These timestamps need to be in nanoseconds in case buffers get pinned very quickly right after each other
+    // System.currentTimeMillis doesn't have enough granularity when things go fast enough (I found this out through
+    // unit testing where algorithms wouldn't work because the timestamps were literally identical in milliseconds)
     @Getter
-    private long lastTimePinned = 0L;
+    private long lastTimePinnedNano = Long.MIN_VALUE;
 
     @Getter
-    private long lastTimeUnpinned = 0L;
+    private long lastTimeUnpinnedNano = Long.MIN_VALUE;
+
+    // Temp variable to help me figure out wtf is going on in unit testing
+    @Getter @Setter
+    private int poolIndex;
 
     @Getter
     private long modifyingTxNum = -1L;
@@ -65,13 +73,13 @@ public class Buffer {
     protected void pin() {
         pins++;
 
-        lastTimePinned = System.currentTimeMillis();
+        lastTimePinnedNano = System.nanoTime();
     }
 
     protected void unpin() {
         pins--;
 
         if (pins == 0)
-            lastTimeUnpinned = System.currentTimeMillis();
+            lastTimeUnpinnedNano = System.nanoTime();
     }
 }
