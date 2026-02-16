@@ -39,7 +39,6 @@ public class BufferMgr {
 
         for (int i = 0; i < numBuffers; i++) {
             Buffer buff = new Buffer(fileMgr, logMgr);
-            buff.setPoolIndex(i);
             bufferPool.add(buff);
         }
     }
@@ -161,18 +160,21 @@ public class BufferMgr {
         if (ringBufferIndex == Integer.MIN_VALUE)
             ringBufferIndex = 0;
 
+        int lastIndex = bufferPool.size() - 1;
         int currentIndex = ringBufferIndex;
         Buffer currBuffer = bufferPool.get(ringBufferIndex);
 
         // If the first element we looked at is unpinned, then return it. If not, start cycling through the ring
-        if (!currBuffer.isPinned())
+        if (!currBuffer.isPinned()) {
+            ringBufferIndex = getNextIndex(currentIndex);
             return Attempt.succeeded(currBuffer);
+        }
 
         while(currBuffer.isPinned()) {
             currentIndex++;
 
             // If we get to the end, cycle back to the beginning
-            if (currentIndex > bufferPool.size() - 1)
+            if (currentIndex > lastIndex)
                 currentIndex = 0;
 
             // We cycled through the entire buffer and found nothing
@@ -188,8 +190,14 @@ public class BufferMgr {
 
         // We want to make sure that we start from the next buffer in the buffer pool instead of this current one
         // the next time we look for an unpinned buffer
-        ringBufferIndex = currentIndex + 1;
+        ringBufferIndex = getNextIndex(currentIndex);
         return Attempt.succeeded(currBuffer);
+    }
+
+    private int getNextIndex(int currentIndex) {
+        int lastIndex = bufferPool.size() - 1;
+        int nextIndex = currentIndex + 1;
+        return (nextIndex > lastIndex) ? 0 : nextIndex;
     }
 
     private boolean hasWaitedTooLong(long startTime) {

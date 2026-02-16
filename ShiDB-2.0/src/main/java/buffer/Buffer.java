@@ -29,10 +29,6 @@ public class Buffer {
     @Getter
     private long lastTimeUnpinnedNano = Long.MIN_VALUE;
 
-    // Temp variable to help me figure out wtf is going on in unit testing
-    @Getter @Setter
-    private int poolIndex;
-
     @Getter
     private long modifyingTxNum = -1L;
     private long lsn = -1L;
