@@ -33,6 +33,19 @@ public class Buffer {
     private long modifyingTxNum = -1L;
     private long lsn = -1L;
 
+    // The following are statistics members to assist with getting helpful knowledge out of the buffer performance
+    // and the corresponding buffer manager
+    @Getter
+    private long numTimesPinned = 0;
+    @Getter
+    private long numTimesUnpinned = 0;
+    @Getter
+    private long numTimesFlushed = 0;
+    @Getter
+    private long maxTimesPinnedWhileInUse = 0;
+    @Getter
+    private long currentTimesPinnedWhileInUse = 0;
+
     public Buffer(FileMgr fileMgr, LogMgr logMgr) {
         this.fileMgr = fileMgr;
         this.logMgr = logMgr;
@@ -63,19 +76,31 @@ public class Buffer {
             logMgr.flush(lsn);
             fileMgr.writePageToDisk(block, contents);
             modifyingTxNum = -1;
+            numTimesFlushed++;
         }
     }
 
     protected void pin() {
+        if (pins > 0) {
+            currentTimesPinnedWhileInUse++;
+            if (currentTimesPinnedWhileInUse > maxTimesPinnedWhileInUse) {
+                maxTimesPinnedWhileInUse = currentTimesPinnedWhileInUse;
+            }
+        }
+
         pins++;
 
         lastTimePinnedNano = System.nanoTime();
+        numTimesPinned++;
     }
 
     protected void unpin() {
         pins--;
+        numTimesUnpinned++;
 
-        if (pins == 0)
+        if (pins == 0) {
             lastTimeUnpinnedNano = System.nanoTime();
+            currentTimesPinnedWhileInUse = 0;
+        }
     }
 }

@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 
 public class FileMgr {
+
     private File dbDirectory;
 
     @Getter
@@ -44,6 +45,26 @@ public class FileMgr {
 
     public long getBlocksReadCounter() {
         return blocksReadCounter.get();
+    }
+
+    public long getDiskWritesUsage(Size size) {
+        long numBytesWritten = getBlocksWriteCounter() * blocksize;
+
+        switch (size) {
+            case Size.MEGABYTES -> { return numBytesWritten / 1000; }
+            case Size.GIGABYTES -> { return numBytesWritten / 1000000; }
+            default -> { return numBytesWritten; }
+        }
+    }
+
+    public long getDiskReadsUsage(Size size) {
+        long numBytesWritten = getBlocksReadCounter() * blocksize;
+
+        switch (size) {
+            case Size.MEGABYTES -> { return numBytesWritten / 1000; }
+            case Size.GIGABYTES -> { return numBytesWritten / 1000000; }
+            default -> { return numBytesWritten; }
+        }
     }
 
     public int getNumAppends(String filename) {

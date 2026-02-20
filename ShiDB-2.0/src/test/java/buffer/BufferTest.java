@@ -47,27 +47,50 @@ class BufferTest {
 
     @Test
     public void testPin() {
+        int numTimesToPin = 69;
+
         assertFalse(testBuffer.isPinned());
-        testBuffer.pin();
-        testBuffer.pin();
-        testBuffer.pin();
+
+        for (int i = 0; i < numTimesToPin; i++)
+            testBuffer.pin();
+
         assertTrue(testBuffer.isPinned());
-        assertEquals(3, testBuffer.getPins());
+        assertEquals(numTimesToPin, testBuffer.getPins());
         assertNotEquals(0, testBuffer.getLastTimePinnedNano());
+        assertEquals(numTimesToPin, testBuffer.getNumTimesPinned());
+        assertEquals(numTimesToPin - 1, testBuffer.getMaxTimesPinnedWhileInUse());
     }
 
     @Test
     public void unPin() {
-        testBuffer.pin();
-        testBuffer.pin();
+        int numTimesToPin = 69;
+        int secondRoundPin = 420;
+        int firstRoundUnpin = 42;
+
+        for (int i = 0; i < numTimesToPin; i++)
+            testBuffer.pin();
+
+        for (int i = 0; i < firstRoundUnpin; i++)
+            testBuffer.unpin();
+
         assertTrue(testBuffer.isPinned());
 
-        testBuffer.unpin();
-        assertTrue(testBuffer.isPinned());
+        assertEquals(firstRoundUnpin, testBuffer.getNumTimesUnpinned());
 
-        testBuffer.unpin();
+        for (int i = 0; i < numTimesToPin - firstRoundUnpin; i++)
+            testBuffer.unpin();
+
         assertFalse(testBuffer.isPinned());
         assertEquals(0, testBuffer.getPins());
         assertNotEquals(0, testBuffer.getLastTimeUnpinnedNano());
+        assertEquals(numTimesToPin, testBuffer.getNumTimesUnpinned());
+
+        for (int i = 0; i < secondRoundPin; i++)
+            testBuffer.pin();
+
+        for (int i = 0; i < secondRoundPin; i++)
+            testBuffer.unpin();
+
+        assertEquals(secondRoundPin + numTimesToPin, testBuffer.getNumTimesUnpinned());
     }
 }

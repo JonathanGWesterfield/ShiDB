@@ -3,6 +3,7 @@ package buffer;
 import error.BufferAbortException;
 import file.BlockId;
 import file.FileMgr;
+import file.Size;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +12,7 @@ import server.ConfigFetcher;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BufferMgr {
@@ -20,6 +22,8 @@ public class BufferMgr {
     private ArrayList<Buffer> bufferPool;
 
     private AtomicInteger numAvailableBuffers;
+    
+    private FileMgr fileMgr;
 
     @Getter @Setter
     private BufferSelectionStrategy unpinnedBufferselectionStrategy;
@@ -40,6 +44,36 @@ public class BufferMgr {
         for (int i = 0; i < numBuffers; i++) {
             Buffer buff = new Buffer(fileMgr, logMgr);
             bufferPool.add(buff);
+        }
+    }
+    
+    public long getTotalSpaceOfBufferPool(Size size) {
+        int numBytes = bufferPool.size() * fileMgr.getBlocksize();
+
+        switch (size) {
+            case Size.MEGABYTES -> { return numBytes / 1000; }
+            case Size.GIGABYTES -> { return numBytes / 1000000; }
+            default -> { return numBytes; }
+        }
+    }
+
+    public long getCurrentlyUsedBufferSpace(Size size) {
+        int numBytes = (bufferPool.size() - numAvailableBuffers.intValue()) * fileMgr.getBlocksize();
+
+        switch (size) {
+            case Size.MEGABYTES -> { return numBytes / 1000; }
+            case Size.GIGABYTES -> { return numBytes / 1000000; }
+            default -> { return numBytes; }
+        }
+    }
+
+    public long getAvailableBufferSpace(Size size) {
+        int numBytes = numAvailableBuffers.intValue() * fileMgr.getBlocksize();
+
+        switch (size) {
+            case Size.MEGABYTES -> { return numBytes / 1000; }
+            case Size.GIGABYTES -> { return numBytes / 1000000; }
+            default -> { return numBytes; }
         }
     }
 
@@ -151,6 +185,14 @@ public class BufferMgr {
         Optional<Buffer> lruBuffer = bufferPool.stream()
                 .filter(buffer -> !buffer.isPinned())
                 .min(Comparator.comparing(Buffer::getLastTimeUnpinnedNano));
+
+        return lruBuffer.map(Attempt::succeeded).orElseGet(Attempt::failed);
+    }
+
+    private Attempt<Buffer> chooseLowestLSNStrategy() {
+        Optional<Buffer> lruBuffer = bufferPool.stream()
+                .filter(buffer -> !buffer.isPinned())
+                .min(Comparator.comparing(Buffer::getModifyingTxNum));
 
         return lruBuffer.map(Attempt::succeeded).orElseGet(Attempt::failed);
     }
