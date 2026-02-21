@@ -14,6 +14,9 @@ public class Buffer {
     @Getter
     private Page contents;
 
+    @Getter @Setter
+    private int poolIndex = Integer.MIN_VALUE;
+
     @Getter
     private BlockId block = null; // Checking for Null is an atrocity and I hate it. Gonna add a "has block" function
 

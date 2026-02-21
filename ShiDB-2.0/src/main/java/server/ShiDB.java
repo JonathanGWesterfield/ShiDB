@@ -66,15 +66,13 @@ public class ShiDB {
     }
 
     public BufferMgr getCorrectBufferMgr(BufferSelectionStrategy bufferStrategy, Integer bufferSize) {
-        int size = ConfigFetcher.getSizeOfBufferPool();
-        BufferSelectionStrategy strategy = ConfigFetcher.getBufferMgrSelectionStrategy();
-        if (bufferStrategy != null)
-            strategy = bufferStrategy;
+        BufferSelectionStrategy strategy = bufferStrategy != null ?
+                bufferStrategy : ConfigFetcher.getBufferMgrSelectionStrategy();
 
-        if (bufferSize != null)
-            size = bufferSize;
+        int size = bufferSize != null ? bufferSize : ConfigFetcher.getSizeOfBufferPool();
 
         return switch (strategy) {
+            case BufferSelectionStrategy.FIFO -> new FIFOBufferMgrStrategy(fileMgr, logMgr, size);
             case BufferSelectionStrategy.LRU -> new LRUBufferMgrStrategy(fileMgr, logMgr, size);
             default -> new NaiveBufferMgrStrategy(fileMgr, logMgr, size);
         };
