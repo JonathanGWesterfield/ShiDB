@@ -12,10 +12,9 @@ import server.ConfigFetcher;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
-import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BufferMgr {
+public class BufferMgrOriginal {
 
     // Adding a getter to assist with unit testing, but no other package should ever directly access this member
     @Getter
@@ -36,7 +35,7 @@ public class BufferMgr {
     private static final long MAX_TIME_WAIT_FOR_PIN_MILLISECONDS = ConfigFetcher.getBufferMgrMaxWaitTime();
     private static final long WAIT_TIME_STEP_MILLISECONDS = ConfigFetcher.getBufferMgrPollStepTime();
 
-    public BufferMgr(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
+    public BufferMgrOriginal(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         unpinnedBufferselectionStrategy = ConfigFetcher.getBufferMgrSelectionStrategy();
         bufferPool = new ArrayList<>();
         numAvailableBuffers = new AtomicInteger(numBuffers);
