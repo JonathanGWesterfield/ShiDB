@@ -1,6 +1,6 @@
 package server;
 
-import buffer.BufferMgr;
+import buffer.*;
 import file.FileMgr;
 import log.LogMgr;
 import lombok.Getter;
@@ -43,10 +43,40 @@ public class ShiDB {
      * @param blockSize Number of bytes each block in the database file should hold
      * @param bufferSize Number of buffers/pages for the buffer manager to create, own, and manage
      */
-    public ShiDB(String dirName, int blockSize, int bufferSize) throws IOException{
+    public ShiDB(String dirName, int blockSize, int bufferSize) throws IOException {
         File dbDirectory = new File(dirName);
         this.fileMgr = new FileMgr(dbDirectory, blockSize);
         this.logMgr = new LogMgr(fileMgr, LOG_FILE);
-        this.bufferMgr = new BufferMgr(fileMgr, logMgr, bufferSize);
+        this.bufferMgr = getCorrectBufferMgr(null, bufferSize);
+    }
+
+    /**
+     * Constructor needed for unit tests that test the various buffer strategies
+     * @param dirName
+     * @param blockSize
+     * @param bufferSize
+     * @param bufferStrategy
+     * @throws IOException
+     */
+    public ShiDB(String dirName, int blockSize, int bufferSize, BufferSelectionStrategy bufferStrategy) throws IOException {
+        File dbDirectory = new File(dirName);
+        this.fileMgr = new FileMgr(dbDirectory, blockSize);
+        this.logMgr = new LogMgr(fileMgr, LOG_FILE);
+        this.bufferMgr = getCorrectBufferMgr(bufferStrategy, bufferSize);
+    }
+
+    public BufferMgr getCorrectBufferMgr(BufferSelectionStrategy bufferStrategy, Integer bufferSize) {
+        int size = ConfigFetcher.getSizeOfBufferPool();
+        BufferSelectionStrategy strategy = ConfigFetcher.getBufferMgrSelectionStrategy();
+        if (bufferStrategy != null)
+            strategy = bufferStrategy;
+
+        if (bufferSize != null)
+            size = bufferSize;
+
+        return switch (strategy) {
+            case BufferSelectionStrategy.LRU -> new LRUBufferMgrStrategy(fileMgr, logMgr, size);
+            default -> new NaiveBufferMgrStrategy(fileMgr, logMgr, size);
+        };
     }
 }
