@@ -74,6 +74,7 @@ public class ShiDB {
         return switch (strategy) {
             case BufferSelectionStrategy.FIFO -> new FIFOBufferMgrStrategy(fileMgr, logMgr, size);
             case BufferSelectionStrategy.LRU -> new LRUBufferMgrStrategy(fileMgr, logMgr, size);
+            case BufferSelectionStrategy.RING_BUFFER -> new RingBufferMgrStrategy(fileMgr, logMgr, size);
             default -> new NaiveBufferMgrStrategy(fileMgr, logMgr, size);
         };
     }
