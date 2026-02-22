@@ -17,7 +17,6 @@ public class RingBufferMgrStrategy extends BufferMgr {
     private int ringBufferIndex = Integer.MIN_VALUE;
 
     private ArrayList<Buffer> bufferPool;
-    HashMap<Integer, Buffer> bufferBlockLUT;
 
     public RingBufferMgrStrategy(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         this.fileMgr = fileMgr;
@@ -44,22 +43,6 @@ public class RingBufferMgrStrategy extends BufferMgr {
             numAvailableBuffers.incrementAndGet();
             notifyAll();
         }
-    }
-
-    private void evictBlockFromMappedBuffers(Buffer buffer) {
-        // Evict from the existing block hashmap
-        if (buffer.getBlock() != null) {
-            int previousBlockNum = buffer.getBlock().blockNum();
-            bufferBlockLUT.remove(previousBlockNum);
-        }
-    }
-
-    @Override
-    protected Attempt<Buffer> findExistingBuffer(BlockId block) {
-        if (bufferBlockLUT.containsKey(block.blockNum()))
-            return Attempt.succeeded(bufferBlockLUT.get(block.blockNum()));
-
-        return Attempt.failed();
     }
 
     @Override

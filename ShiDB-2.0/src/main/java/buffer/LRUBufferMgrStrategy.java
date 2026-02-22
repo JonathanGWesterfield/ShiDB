@@ -10,9 +10,6 @@ import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LRUBufferMgrStrategy extends BufferMgr {
-
-    HashMap<Integer, Buffer> bufferBlockLUT;
-
     ArrayDeque<Buffer> freeBufferPool;
 
     // Since the freeBufferPool literally just pops things out, we need to keep track of which buffers we loaned out
@@ -51,14 +48,6 @@ public class LRUBufferMgrStrategy extends BufferMgr {
         }
 
         bufferCountSanityCheck();
-    }
-
-    private void evictBlockFromMappedBuffers(Buffer buffer) {
-        // Evict from the existing block hashmap
-        if (buffer.getBlock() != null) {
-            int previousBlockNum = buffer.getBlock().blockNum();
-            bufferBlockLUT.remove(previousBlockNum);
-        }
     }
 
     @Override
@@ -104,14 +93,6 @@ public class LRUBufferMgrStrategy extends BufferMgr {
 
             throw new RuntimeException(String.format("Somewhere along the way, we lost track of a buffer! %s", errMsg));
         }
-    }
-
-    @Override
-    protected Attempt<Buffer> findExistingBuffer(BlockId block) {
-        if (bufferBlockLUT.containsKey(block.blockNum()))
-            return Attempt.succeeded(bufferBlockLUT.get(block.blockNum()));
-
-        return Attempt.failed();
     }
 
     @Override

@@ -8,9 +8,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class NaiveBufferMgrStrategy extends BufferMgr {
-
-    HashMap<Integer, Buffer> bufferBlockLUT;
-
     LinkedList<Buffer> bufferPool;
 
     public NaiveBufferMgrStrategy(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
@@ -39,14 +36,6 @@ public class NaiveBufferMgrStrategy extends BufferMgr {
 
             numAvailableBuffers.incrementAndGet();
             notifyAll();
-        }
-    }
-
-    private void evictBlockFromMappedBuffers(Buffer buffer) {
-        // Evict from the existing block hashmap
-        if (buffer.getBlock() != null) {
-            int previousBlockNum = buffer.getBlock().blockNum();
-            bufferBlockLUT.remove(previousBlockNum);
         }
     }
 
@@ -80,14 +69,6 @@ public class NaiveBufferMgrStrategy extends BufferMgr {
 
 
         return Attempt.succeeded(buffer);
-    }
-
-    @Override
-    protected Attempt<Buffer> findExistingBuffer(BlockId block) {
-        if (bufferBlockLUT.containsKey(block.blockNum()))
-            return Attempt.succeeded(bufferBlockLUT.get(block.blockNum()));
-
-        return Attempt.failed();
     }
 
     @Override

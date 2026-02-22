@@ -12,8 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FIFOBufferMgrStrategy extends BufferMgr {
 
-    HashMap<Integer, Buffer> bufferBlockLUT;
-
     PriorityQueue<Buffer> freeBufferPool;
 
     // Comparator to make sure our priority queue returns the least recently pinned buffers first
@@ -72,14 +70,6 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
         bufferCountSanityCheck();
     }
 
-    private void evictBlockFromMappedBuffers(Buffer buffer) {
-        // Evict from the existing block hashmap
-        if (buffer.getBlock() != null) {
-            int previousBlockNum = buffer.getBlock().blockNum();
-            bufferBlockLUT.remove(previousBlockNum);
-        }
-    }
-
     @Override
     protected Attempt<Buffer> tryToPin(BlockId block) {
         Attempt<Buffer> attemptFindExisting = findExistingBuffer(block);
@@ -123,14 +113,6 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
 
             throw new RuntimeException(String.format("Somewhere along the way, we lost track of a buffer! %s", errMsg));
         }
-    }
-
-    @Override
-    protected Attempt<Buffer> findExistingBuffer(BlockId block) {
-        if (bufferBlockLUT.containsKey(block.blockNum()))
-            return Attempt.succeeded(bufferBlockLUT.get(block.blockNum()));
-
-        return Attempt.failed();
     }
 
     @Override

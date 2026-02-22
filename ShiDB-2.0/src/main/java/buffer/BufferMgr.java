@@ -6,13 +6,21 @@ import file.FileMgr;
 import file.Size;
 import server.ConfigFetcher;
 
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/** After thinking about it, this probably wasn't a great use of an abstract class. It would've made more sense
+ * to simply create the Naive implementation and then just create child classes to override it...
+ *
+ * I'm not going to refactor as it's not worth it, but this stuff is crazy tightly coupled and could've been done better...
+ */
 public abstract class BufferMgr {
 
     protected int numTotalBuffers;
     protected AtomicInteger numAvailableBuffers;
     protected FileMgr fileMgr;
+
+    HashMap<Integer, Buffer> bufferBlockLUT;
 
     private static final long MAX_TIME_WAIT_FOR_PIN_MILLISECONDS = ConfigFetcher.getBufferMgrMaxWaitTime();
     private static final long WAIT_TIME_STEP_MILLISECONDS = ConfigFetcher.getBufferMgrPollStepTime();
@@ -53,8 +61,6 @@ public abstract class BufferMgr {
     public int getNumAvailableBuffers() {
         return numAvailableBuffers.get();
     }
-
-    public abstract void unpinBuffer(Buffer buffer);
 
     public synchronized Buffer pinBuffer(BlockId block) {
         try {
@@ -104,7 +110,22 @@ public abstract class BufferMgr {
         return System.currentTimeMillis() - startTime > MAX_TIME_WAIT_FOR_PIN_MILLISECONDS;
     }
 
-    protected abstract Attempt<Buffer> findExistingBuffer(BlockId block);
+    protected void evictBlockFromMappedBuffers(Buffer buffer) {
+        // Evict from the existing block hashmap
+        if (buffer.getBlock() != null) {
+            int previousBlockNum = buffer.getBlock().blockNum();
+            bufferBlockLUT.remove(previousBlockNum);
+        }
+    }
+
+    protected Attempt<Buffer> findExistingBuffer(BlockId block) {
+        if (bufferBlockLUT.containsKey(block.blockNum()))
+            return Attempt.succeeded(bufferBlockLUT.get(block.blockNum()));
+
+        return Attempt.failed();
+    }
 
     protected abstract Attempt<Buffer> chooseUnPinnedBuffer();
+
+    public abstract void unpinBuffer(Buffer buffer);
 }
