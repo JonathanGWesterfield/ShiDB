@@ -253,7 +253,7 @@ public class BufferMgrTest {
         // Refer to testNaiveUnpinnedBufferStrategy() on how this works. This test just does the flavor of making
         // sure that only the least recently pinned block is chosen first
         String testFile = "unit_test_file";
-        bufferMgr = shiDB.getCorrectBufferMgr(BufferSelectionStrategy.RING_BUFFER, numInitialBuffers);
+        bufferMgr = shiDB.getCorrectBufferMgr(BufferSelectionStrategy.RING_BUFFER, 5);
 
         // Need all these blocks to force disk reads aka choosing and unused, unpinned block
         // If we pin an existing block, the bufferMgr will just return a buffer that already has the block pinned
@@ -263,42 +263,47 @@ public class BufferMgrTest {
         BlockId block4 = new BlockId(testFile, 4);
         BlockId block5 = new BlockId(testFile, 5);
         BlockId block6 = new BlockId(testFile, 6);
+        BlockId block7 = new BlockId(testFile, 7);
+        BlockId block8 = new BlockId(testFile, 8);
+        BlockId block9 = new BlockId(testFile, 9);
 
         // The buffer variables are meaningless. I just need the references so I can unpin them
         // What matters is the internal bufferPool and what is mapped to what
         Buffer buffer1 = bufferMgr.pinBuffer(block1);
         Buffer buffer2 = bufferMgr.pinBuffer(block2);
         Buffer buffer3 = bufferMgr.pinBuffer(block3);
+        Buffer buffer4 = bufferMgr.pinBuffer(block4);
+        Buffer buffer5 = bufferMgr.pinBuffer(block5);
 
         // Free element 1, then 0
         bufferMgr.unpinBuffer(buffer2);
         bufferMgr.unpinBuffer(buffer1);
 
         // should Pin element 0, then element 1
-        buffer1 = bufferMgr.pinBuffer(block4);
-        buffer2 = bufferMgr.pinBuffer(block5);
-
-        assertEquals(block4, buffer1.getBlock());
-        assertEquals(0, buffer1.getPoolIndex());
-        assertEquals(block5, buffer2.getBlock());
-        assertEquals(1, buffer2.getPoolIndex());
-
-        // unpin element 1, then 0, then 2
-        bufferMgr.unpinBuffer(buffer2);
-        bufferMgr.unpinBuffer(buffer1);
-        bufferMgr.unpinBuffer(buffer3);
-
-        // Should pin element 2, then 0, then 1
         buffer1 = bufferMgr.pinBuffer(block6);
-        buffer2 = bufferMgr.pinBuffer(block2);
-        buffer3 = bufferMgr.pinBuffer(block1);
+        buffer2 = bufferMgr.pinBuffer(block7);
 
         assertEquals(block6, buffer1.getBlock());
-        assertEquals(2, buffer1.getPoolIndex());
-        assertEquals(block2, buffer2.getBlock());
-        assertEquals(0, buffer2.getPoolIndex());
+        assertEquals(0, buffer1.getPoolIndex());
+        assertEquals(block7, buffer2.getBlock());
+        assertEquals(1, buffer2.getPoolIndex());
+
+        // unpin element 1, then 4, then 3
+        bufferMgr.unpinBuffer(buffer2);
+        bufferMgr.unpinBuffer(buffer5);
+        bufferMgr.unpinBuffer(buffer4);
+
+        // Should pin element 3, then 4, then 1
+        buffer1 = bufferMgr.pinBuffer(block7);
+        buffer2 = bufferMgr.pinBuffer(block8);
+        buffer3 = bufferMgr.pinBuffer(block1);
+
+        assertEquals(block7, buffer1.getBlock());
+        assertEquals(1, buffer1.getPoolIndex());
+        assertEquals(block8, buffer2.getBlock());
+        assertEquals(3, buffer2.getPoolIndex());
         assertEquals(block1, buffer3.getBlock());
-        assertEquals(1, buffer3.getPoolIndex());
+        assertEquals(4, buffer3.getPoolIndex());
     }
 
     @Test
