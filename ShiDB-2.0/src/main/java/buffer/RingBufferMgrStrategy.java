@@ -63,8 +63,7 @@ public class RingBufferMgrStrategy extends BufferMgr {
 
             buffer.assignToBlock(block);
             bufferBlockLUT.put(block.blockNum(), buffer);
-        }
-        else {
+        } else {
             buffer = attemptFindExisting.value();
         }
 
@@ -91,7 +90,7 @@ public class RingBufferMgrStrategy extends BufferMgr {
             return Attempt.succeeded(currBuffer);
         }
 
-        while(currBuffer.isPinned()) {
+        while (currBuffer.isPinned()) {
             currentIndex++;
 
             // If we get to the end, cycle back to the beginning

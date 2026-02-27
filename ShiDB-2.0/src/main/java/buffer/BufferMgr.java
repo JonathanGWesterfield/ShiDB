@@ -76,8 +76,7 @@ public abstract class BufferMgr {
                 throw new BufferAbortException("Waited too long for a buffer to become available and timed out!");
 
             return attemptToPin.value();
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new BufferAbortException("While waiting for a buffer to become available, thread was interrupted!");
         }
     }
@@ -93,8 +92,7 @@ public abstract class BufferMgr {
 
             buffer = attemptChooseUnpinnedBuffer.value();
             buffer.assignToBlock(block);
-        }
-        else {
+        } else {
             buffer = attemptFindExisting.value();
         }
 
