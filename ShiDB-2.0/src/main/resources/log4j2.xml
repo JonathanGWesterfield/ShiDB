@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <!-- Console output -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%level][%d{HH:mm:ss.SSS}][%t] %logger{36} - %msg%n"/>
+        </Console>
+
+        <!-- Rolling file output -->
+        <RollingFile name="File"
+                     fileName="logs/shidb.log"
+                     filePattern="logs/shidb-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="[%level][%d{yyyy-MM-dd HH:mm:ss.SSS}][%t] %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="7"/>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- Your application -->
+        <Logger name="RecoveryMgr" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+
+        <!-- Root catches everything else -->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

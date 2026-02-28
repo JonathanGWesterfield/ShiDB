@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class ConfigFetcher {
     private static ConfigFetcher fetcherInstance;
-    private static String configFilePath = "src/resources/config.json";
+    private static String configFilePath = "src/main/resources/config.json";
 
     @Getter
     private Map<String, Object> configMap;
