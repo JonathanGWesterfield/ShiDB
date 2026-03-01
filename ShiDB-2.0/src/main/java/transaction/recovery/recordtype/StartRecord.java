@@ -21,6 +21,10 @@ public class StartRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    public String toString() {
+        return SimpleLogRecordHeader.recordToString(operator, txNum);
+    }
+
     // Does nothing, because a start record contains no undo information.
     public void undo(Transaction tx) {}
 

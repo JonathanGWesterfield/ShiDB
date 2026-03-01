@@ -14,4 +14,11 @@ public class SimpleLogRecordHeader {
         int txPosition = Integer.BYTES;
         txNum = page.getLong(txPosition);
     }
+
+    public static String recordToString(int operator, long txNum) {
+        String strOp = LogRecord.operatorToString(operator);
+
+        // Thought about using StringBuilder, but the compiler should be able to optimize a single line string concat
+        return "<" + strOp + ", tx: " + txNum + ">";
+    }
 }

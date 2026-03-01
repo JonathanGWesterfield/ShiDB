@@ -22,6 +22,10 @@ public class RollbackRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    public String toString() {
+        return SimpleLogRecordHeader.recordToString(operator, txNum);
+    }
+
     // Does nothing, because a rollback record contains no undo information.
     public void undo(Transaction tx) {}
 

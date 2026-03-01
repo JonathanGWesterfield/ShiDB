@@ -21,6 +21,10 @@ public class CommitRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    public String toString() {
+        return SimpleLogRecordHeader.recordToString(operator, txNum);
+    }
+
     // Does nothing, because a commit record contains no undo information.
     public void undo(Transaction tx) {}
 

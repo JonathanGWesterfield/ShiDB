@@ -15,9 +15,14 @@ public class CheckpointRecord implements LogRecord {
 
     @Getter
     private long txNum;
+
     public CheckpointRecord(Page page) {
         SimpleLogRecordHeader header = new SimpleLogRecordHeader(page);
         txNum = header.getTxNum();
+    }
+
+    public String toString() {
+        return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
 
     // Does nothing, because a checkpoint record contains no undo information.
