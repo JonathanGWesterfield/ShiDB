@@ -1,0 +1,31 @@
+package transaction.recovery.recordtype;
+
+import file.Page;
+import log.LogMgr;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import transaction.Transaction;
+import transaction.recovery.LogRecord;
+import transaction.recovery.SimpleLogRecordHeader;
+
+@Slf4j(topic = "RecoveryMgr")
+public class CommitRecord implements LogRecord {
+    @Getter
+    private final int operator = LogRecord.COMMIT;
+
+    @Getter
+    private long txNum;
+
+    public CommitRecord(Page page) {
+        SimpleLogRecordHeader header = new SimpleLogRecordHeader(page);
+        txNum = header.getTxNum();
+    }
+
+    // Does nothing, because a commit record contains no undo information.
+    public void undo(Transaction tx) {}
+
+    public static void writeToLog(LogMgr logMgr, long txNum) {
+        log.debug("Writing {} log record. TxNum: {}", LogRecord.operatorToString(LogRecord.COMMIT), txNum);
+        LogRecord.writeToLog(logMgr, LogRecord.COMMIT, txNum);
+    }
+}

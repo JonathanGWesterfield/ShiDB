@@ -1,6 +1,7 @@
 package transaction.recovery;
 
 import file.Page;
+import transaction.recovery.recordtype.*;
 
 public class LogRecordFactory {
 
@@ -16,7 +17,7 @@ public class LogRecordFactory {
             case LogRecord.COMMIT -> new CommitRecord(page);
             case LogRecord.ROLLBACK -> new RollbackRecord(page);
             case LogRecord.SET_STRING -> new SetStringRecord(page);
-            case LogRecord.SET_INT -> new SetIntRecord();
+            case LogRecord.SET_INT -> new SetIntRecord(page);
 
             // The textbook returns null, but I'll be damned if I do that. NO NPE's!!!
             default -> throw new RuntimeException("Encountered an unsupported LogRecordType: " + logRecordType);
