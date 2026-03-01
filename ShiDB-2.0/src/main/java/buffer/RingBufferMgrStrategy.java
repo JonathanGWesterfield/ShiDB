@@ -37,6 +37,13 @@ public class RingBufferMgrStrategy extends BufferMgr {
     }
 
     @Override
+    public synchronized void flushAll(long txNum) {
+        for (Buffer buff : bufferPool)
+            if (buff.getModifyingTxNum() == txNum)
+                buff.flush();
+    }
+
+    @Override
     public synchronized void unpinBuffer(Buffer buffer) {
         buffer.unpin();
         if (!buffer.isPinned()) {

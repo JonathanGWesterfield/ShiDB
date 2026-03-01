@@ -34,6 +34,18 @@ public class LRUBufferMgrStrategy extends BufferMgr {
     }
 
     @Override
+    public synchronized void flushAll(long txNum) {
+        // Need to flush but the free pool and the inUse pool in case the transaction num matches (aka dirty buffers)
+        for (Buffer buff : freeBufferPool)
+            if (buff.getModifyingTxNum() == txNum)
+                buff.flush();
+
+        for (Buffer buff : inUseBufferMap.values())
+            if (buff.getModifyingTxNum() == txNum)
+                buff.flush();
+    }
+
+    @Override
     public synchronized void unpinBuffer(Buffer buffer) {
         buffer.unpin();
         if (!buffer.isPinned()) {

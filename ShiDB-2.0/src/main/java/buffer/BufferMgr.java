@@ -126,4 +126,6 @@ public abstract class BufferMgr {
     protected abstract Attempt<Buffer> chooseUnPinnedBuffer();
 
     public abstract void unpinBuffer(Buffer buffer);
+
+    public abstract void flushAll(long txNum);
 }

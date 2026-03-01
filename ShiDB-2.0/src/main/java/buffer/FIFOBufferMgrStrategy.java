@@ -6,13 +6,15 @@ import log.LogMgr;
 
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FIFOBufferMgrStrategy extends BufferMgr {
 
     PriorityQueue<Buffer> freeBufferPool;
+
+    // Since the freeBufferPool literally just pops things out, we need to keep track of which buffers we loaned out
+    HashMap<Integer, Buffer> inUseBufferMap;
 
     // Comparator to make sure our priority queue returns the least recently pinned buffers first
     Comparator<Buffer> leastRecentlyPinned = new Comparator<Buffer>() {
@@ -28,9 +30,6 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
             return (int) (buff1.getLastTimePinnedNano() - buff2.getLastTimePinnedNano());
         }
     };
-
-    // Since the freeBufferPool literally just pops things out, we need to keep track of which buffers we loaned out
-    HashMap<Integer, Buffer> inUseBufferMap;
 
     public FIFOBufferMgrStrategy(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         this.fileMgr = fileMgr;
@@ -51,6 +50,18 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
             buff.setPoolIndex(i);
             freeBufferPool.offer(buff);
         }
+    }
+
+    @Override
+    public synchronized void flushAll(long txNum) {
+        // Need to flush but the free pool and the inUse pool in case the transaction num matches (aka dirty buffers)
+        for (Buffer buff : freeBufferPool)
+            if (buff.getModifyingTxNum() == txNum)
+                buff.flush();
+
+        for (Buffer buff : inUseBufferMap.values())
+            if (buff.getModifyingTxNum() == txNum)
+                buff.flush();
     }
 
     @Override
