@@ -21,6 +21,11 @@ public class CheckpointRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    // Private constructor to help with logging
+    private CheckpointRecord(long txNum) {
+        this.txNum = txNum;
+    }
+
     public String toString() {
         return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
@@ -29,7 +34,9 @@ public class CheckpointRecord implements LogRecord {
     public void undo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
-        log.debug("Writing {} log record. TxNum: {}", LogRecord.operatorToString(LogRecord.CHECKPOINT), txNum);
+        CheckpointRecord record = new CheckpointRecord(txNum);
+
+        log.debug("Writing log record: {}", record);
         return LogRecord.writeToLog(logMgr, LogRecord.CHECKPOINT, txNum);
     }
 }

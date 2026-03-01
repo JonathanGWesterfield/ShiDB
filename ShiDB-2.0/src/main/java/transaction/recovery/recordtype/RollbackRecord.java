@@ -22,6 +22,11 @@ public class RollbackRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    // Private constructor to help with logging
+    private RollbackRecord(long txNum) {
+        this.txNum = txNum;
+    }
+
     public String toString() {
         return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
@@ -30,7 +35,9 @@ public class RollbackRecord implements LogRecord {
     public void undo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
-        log.debug("Writing {} log record. TxNum: {}", LogRecord.operatorToString(LogRecord.ROLLBACK), txNum);
+        RollbackRecord record = new RollbackRecord(txNum);
+
+        log.debug("Writing log record: {}", record);
         return LogRecord.writeToLog(logMgr, LogRecord.ROLLBACK, txNum);
     }
 }
