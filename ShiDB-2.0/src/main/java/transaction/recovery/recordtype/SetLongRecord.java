@@ -10,7 +10,7 @@ import transaction.Transaction;
 import transaction.recovery.DataLogRecordHeader;
 import transaction.recovery.LogRecord;
 
-@Slf4j
+@Slf4j(topic = "RecoveryMgr")
 public class SetLongRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_LONG;
@@ -49,10 +49,10 @@ public class SetLongRecord implements LogRecord {
     /* SET_LONG record is laid out as such:
         <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (long)>
     */
-    public static void writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, long value) {
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, long value) {
         log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
                 LogRecord.operatorToString(LogRecord.SET_LONG), txNum, block.filename(), block.blockNum(), offset, value);
-        LogRecord.writeToLog(logMgr, LogRecord.SET_LONG, txNum, block, offset, Long.BYTES,
+        return LogRecord.writeToLog(logMgr, LogRecord.SET_LONG, txNum, block, offset, Long.BYTES,
                 (page, position) -> page.setLong(position, value));
     }
 }

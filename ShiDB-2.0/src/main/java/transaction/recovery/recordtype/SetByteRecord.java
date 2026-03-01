@@ -10,7 +10,7 @@ import transaction.Transaction;
 import transaction.recovery.DataLogRecordHeader;
 import transaction.recovery.LogRecord;
 
-@Slf4j
+@Slf4j(topic = "RecoveryMgr")
 public class SetByteRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_BYTE;
@@ -49,10 +49,10 @@ public class SetByteRecord implements LogRecord {
     /* SET_BYTE record is laid out as such:
         <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (byte)>
     */
-    public static void writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, byte value) {
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, byte value) {
         log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
                 LogRecord.operatorToString(LogRecord.SET_BYTE), txNum, block.filename(), block.blockNum(), offset, value);
-        LogRecord.writeToLog(logMgr, LogRecord.SET_BYTE, txNum, block, offset, Byte.BYTES,
+        return LogRecord.writeToLog(logMgr, LogRecord.SET_BYTE, txNum, block, offset, Byte.BYTES,
                 (page, position) -> page.setByte(position, value));
     }
 }

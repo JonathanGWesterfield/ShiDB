@@ -24,8 +24,8 @@ public class CommitRecord implements LogRecord {
     // Does nothing, because a commit record contains no undo information.
     public void undo(Transaction tx) {}
 
-    public static void writeToLog(LogMgr logMgr, long txNum) {
+    public static long writeToLog(LogMgr logMgr, long txNum) {
         log.debug("Writing {} log record. TxNum: {}", LogRecord.operatorToString(LogRecord.COMMIT), txNum);
-        LogRecord.writeToLog(logMgr, LogRecord.COMMIT, txNum);
+        return LogRecord.writeToLog(logMgr, LogRecord.COMMIT, txNum);
     }
 }

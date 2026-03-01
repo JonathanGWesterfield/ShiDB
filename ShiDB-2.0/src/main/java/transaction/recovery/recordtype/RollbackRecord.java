@@ -25,8 +25,8 @@ public class RollbackRecord implements LogRecord {
     // Does nothing, because a rollback record contains no undo information.
     public void undo(Transaction tx) {}
 
-    public static void writeToLog(LogMgr logMgr, long txNum) {
+    public static long writeToLog(LogMgr logMgr, long txNum) {
         log.debug("Writing {} log record. TxNum: {}", LogRecord.operatorToString(LogRecord.ROLLBACK), txNum);
-        LogRecord.writeToLog(logMgr, LogRecord.ROLLBACK, txNum);
+        return LogRecord.writeToLog(logMgr, LogRecord.ROLLBACK, txNum);
     }
 }

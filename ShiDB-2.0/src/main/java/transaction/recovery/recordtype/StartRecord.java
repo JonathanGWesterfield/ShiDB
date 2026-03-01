@@ -24,8 +24,8 @@ public class StartRecord implements LogRecord {
     // Does nothing, because a start record contains no undo information.
     public void undo(Transaction tx) {}
 
-    public static void writeToLog(LogMgr logMgr, long txNum) {
+    public static long writeToLog(LogMgr logMgr, long txNum) {
         log.debug("Writing {} log record. TxNum: {}", LogRecord.operatorToString(LogRecord.START), txNum);
-        LogRecord.writeToLog(logMgr, LogRecord.START, txNum);
+        return LogRecord.writeToLog(logMgr, LogRecord.START, txNum);
     }
 }

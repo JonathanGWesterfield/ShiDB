@@ -13,7 +13,7 @@ import transaction.recovery.LogRecord;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
-@Slf4j
+@Slf4j(topic = "RecoveryMgr")
 public class SetDateTimeRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_DATETIME;
@@ -52,12 +52,12 @@ public class SetDateTimeRecord implements LogRecord {
     /* SET_DATETIME record is laid out as such:
         <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (long)>
     */
-    public static void writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, LocalDateTime value) {
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, LocalDateTime value) {
         long epoch = value.toEpochSecond(ZoneOffset.UTC);
 
         log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
                 LogRecord.operatorToString(LogRecord.SET_DATETIME), txNum, block.filename(), block.blockNum(), offset, value);
-        LogRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, txNum, block, offset, Long.BYTES,
+        return LogRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, txNum, block, offset, Long.BYTES,
                 (page, position) -> page.setLong(position, epoch));
     }
 }

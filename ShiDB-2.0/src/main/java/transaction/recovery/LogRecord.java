@@ -14,7 +14,7 @@ import transaction.Transaction;
  */
 public interface LogRecord {
     public static final int CHECKPOINT = 0, START = 1, COMMIT = 2, ROLLBACK = 3, SET_INT = 4, SET_STRING = 5,
-            SET_BYTE = 6, SET_SHORT = 7, SET_LONG = 8, SET_DOUBLE = 9, SET_DATETIME = 10;
+            SET_BYTE = 6, SET_SHORT = 7, SET_LONG = 8, SET_DOUBLE = 9, SET_DATETIME = 10, SET_BOOLEAN = 11;
 
     static String operatorToString(int operator) {
         return switch(operator) {
@@ -28,6 +28,7 @@ public interface LogRecord {
             case LogRecord.SET_LONG -> "SET_LONG";
             case LogRecord.SET_DOUBLE -> "SET_DOUBLE";
             case LogRecord.SET_DATETIME -> "SET_DATETIME";
+            case LogRecord.SET_BOOLEAN -> "SET_BOOLEAN";
             default -> throw new RuntimeException("Encountered an unsupported operator: " + operator);
         };
     }
@@ -39,7 +40,7 @@ public interface LogRecord {
         void write(Page page, int position);
     }
 
-    static void writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int offset, int valueByteSize,
+    static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int offset, int valueByteSize,
                            ValueWriter valueWriter) {
         int txPosition = Integer.BYTES;
         int filenamePosition = txPosition + Long.BYTES;
@@ -60,10 +61,10 @@ public interface LogRecord {
 
         valueWriter.write(page, valuePosition);
 
-        logMgr.appendRecord(record);
+        return logMgr.appendRecord(record);
     }
 
-    static void writeToLog(LogMgr logMgr, int operator, long txNum) {
+    static long writeToLog(LogMgr logMgr, int operator, long txNum) {
         int txPosition = Integer.BYTES;
 
         int recordLength = txPosition + Long.BYTES;
@@ -74,7 +75,7 @@ public interface LogRecord {
         page.setInt(0, operator);
         page.setLong(txPosition, txNum);
 
-        logMgr.appendRecord(record);
+        return logMgr.appendRecord(record);
     }
 
     int getOperator();

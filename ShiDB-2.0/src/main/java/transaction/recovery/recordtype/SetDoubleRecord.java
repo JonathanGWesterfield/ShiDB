@@ -10,7 +10,7 @@ import transaction.Transaction;
 import transaction.recovery.DataLogRecordHeader;
 import transaction.recovery.LogRecord;
 
-@Slf4j
+@Slf4j(topic = "RecoveryMgr")
 public class SetDoubleRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_DOUBLE;
@@ -49,10 +49,10 @@ public class SetDoubleRecord implements LogRecord {
     /* SET_DOUBLE record is laid out as such:
         <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (double)>
     */
-    public static void writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, double value) {
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, double value) {
         log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
                 LogRecord.operatorToString(LogRecord.SET_DOUBLE), txNum, block.filename(), block.blockNum(), offset, value);
-        LogRecord.writeToLog(logMgr, LogRecord.SET_DOUBLE, txNum, block, offset, Double.BYTES,
+        return LogRecord.writeToLog(logMgr, LogRecord.SET_DOUBLE, txNum, block, offset, Double.BYTES,
                 (page, position) -> page.setDouble(position, value));
     }
 }

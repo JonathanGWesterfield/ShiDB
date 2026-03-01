@@ -50,10 +50,10 @@ public class SetStringRecord implements LogRecord {
     /* SET_STRING record is laid out as such:
         <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (string)>
     */
-    public static void writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, String value) {
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, String value) {
         log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
                 LogRecord.operatorToString(LogRecord.SET_STRING), txNum, block.filename(), block.blockNum(), offset, value);
-        LogRecord.writeToLog(logMgr, LogRecord.SET_STRING, txNum, block, offset, Page.calcMaxByteLength(value),
+        return LogRecord.writeToLog(logMgr, LogRecord.SET_STRING, txNum, block, offset, Page.calcMaxByteLength(value),
                 (page, position) -> page.setString(position, value));
     }
 }
