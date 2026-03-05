@@ -132,12 +132,19 @@ public interface LogRecord {
         page.setInt(0, operator);
         page.setLong(txPosition, txNum);
 
+        Logger log = LoggerFactory.getLogger("RecoverMgr");
+        log.debug("Writing log record: <{}, tx: {}>", LogRecord.operatorToString(operator), txNum);
+
         return logMgr.appendRecord(record);
     }
 
     int getOperator();
+
     long getTxNum();
+
     void undo(Transaction tx);
+
     void redo(Transaction tx);
+
     String toString();
 }

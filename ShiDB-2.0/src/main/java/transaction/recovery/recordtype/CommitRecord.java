@@ -21,11 +21,6 @@ public class CommitRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
-    // Private constructor to help with logging
-    private CommitRecord(long txNum) {
-        this.txNum = txNum;
-    }
-
     public String toString() {
         return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
@@ -37,9 +32,6 @@ public class CommitRecord implements LogRecord {
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
-        CommitRecord record = new CommitRecord(txNum);
-
-        log.debug("Writing log record: {}", record);
         return LogRecord.writeToLog(logMgr, LogRecord.COMMIT, txNum);
     }
 }

@@ -21,11 +21,6 @@ public class StartRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
-    // Private constructor to help with logging
-    private StartRecord(long txNum) {
-        this.txNum = txNum;
-    }
-
     public String toString() {
         return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
@@ -37,9 +32,6 @@ public class StartRecord implements LogRecord {
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
-        StartRecord record = new StartRecord(txNum);
-
-        log.debug("Writing log record: {}", record);
         return LogRecord.writeToLog(logMgr, LogRecord.START, txNum);
     }
 }
