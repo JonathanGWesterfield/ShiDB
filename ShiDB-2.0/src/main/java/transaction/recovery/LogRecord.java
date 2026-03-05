@@ -3,11 +3,12 @@ package transaction.recovery;
 import file.BlockId;
 import file.Page;
 import log.LogMgr;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import transaction.Transaction;
 
+import java.util.ArrayList;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 /**
@@ -22,10 +23,10 @@ import java.util.function.BiConsumer;
  * All simple records like commit and rollback should be laid out like so: (non-quiescent checkpoint records will be different)
  * <OPERATOR (int), txNum (long)>
  */
-@Slf4j
 public interface LogRecord {
     public static final int CHECKPOINT = 0, START = 1, COMMIT = 2, ROLLBACK = 3, SET_INT = 4, SET_STRING = 5,
-            SET_BYTE = 6, SET_SHORT = 7, SET_LONG = 8, SET_DOUBLE = 9, SET_DATETIME = 10, SET_BOOLEAN = 11;
+            SET_BYTE = 6, SET_SHORT = 7, SET_LONG = 8, SET_DOUBLE = 9, SET_DATETIME = 10, SET_BOOLEAN = 11,
+            NQ_CHECKPOINT = 12;
 
     static String operatorToString(int operator) {
         return switch(operator) {
@@ -121,7 +122,7 @@ public interface LogRecord {
     }
 
     // log function for simple records like commit, rollback, start, etc.
-    static long writeToLog(LogMgr logMgr, int operator, long txNum) {
+    static long writeToLog(LogMgr logMgr, int operator, long txNum, Optional<ArrayList<Long>> runningTxNums) {
         int txPosition = Integer.BYTES;
 
         int recordLength = txPosition + Long.BYTES;
@@ -133,9 +134,30 @@ public interface LogRecord {
         page.setLong(txPosition, txNum);
 
         Logger log = LoggerFactory.getLogger("RecoverMgr");
-        log.debug("Writing log record: <{}, tx: {}>", LogRecord.operatorToString(operator), txNum);
+
+        if (operator == LogRecord.NQ_CHECKPOINT) {
+            log.debug("Writing log record: <{}, tx: {}, runningTxNumListLength: {}, runningTxNums: {}>",
+                    LogRecord.operatorToString(operator), txNum, runningTxNums.get().size(), runningTxNums);
+
+            writeRunningTxNumsToPage(page, runningTxNums.get());
+        }
+        else {
+            log.debug("Writing log record: <{}, tx: {}>", LogRecord.operatorToString(operator), txNum);
+        }
 
         return logMgr.appendRecord(record);
+    }
+
+    private static void writeRunningTxNumsToPage(Page page, ArrayList<Long> runningTxNums) {
+        int runningTxLengthPosition = Integer.BYTES + Long.BYTES; // Record operator size + txNum size
+        page.setInt(runningTxLengthPosition, runningTxNums.size());
+
+        int listOffset = runningTxLengthPosition + Integer.BYTES;
+
+        for (Long runningTxNum : runningTxNums) {
+            page.setLong(listOffset, runningTxNum);
+            listOffset += Long.BYTES;
+        }
     }
 
     int getOperator();

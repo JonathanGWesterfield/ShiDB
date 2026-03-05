@@ -8,6 +8,8 @@ import transaction.Transaction;
 import transaction.recovery.LogRecord;
 import transaction.recovery.SimpleLogRecordHeader;
 
+import java.util.Optional;
+
 @Slf4j(topic = "RecoveryMgr")
 public class StartRecord implements LogRecord {
     @Getter
@@ -32,6 +34,6 @@ public class StartRecord implements LogRecord {
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
-        return LogRecord.writeToLog(logMgr, LogRecord.START, txNum);
+        return LogRecord.writeToLog(logMgr, LogRecord.START, txNum, Optional.empty());
     }
 }

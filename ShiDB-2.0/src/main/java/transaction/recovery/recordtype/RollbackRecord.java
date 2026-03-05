@@ -8,6 +8,8 @@ import transaction.Transaction;
 import transaction.recovery.LogRecord;
 import transaction.recovery.SimpleLogRecordHeader;
 
+import java.util.Optional;
+
 @Slf4j(topic = "RecoveryMgr")
 public class RollbackRecord implements LogRecord {
 
@@ -33,6 +35,6 @@ public class RollbackRecord implements LogRecord {
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
-        return LogRecord.writeToLog(logMgr, LogRecord.ROLLBACK, txNum);
+        return LogRecord.writeToLog(logMgr, LogRecord.ROLLBACK, txNum, Optional.empty());
     }
 }

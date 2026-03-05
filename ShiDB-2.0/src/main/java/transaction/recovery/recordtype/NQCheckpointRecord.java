@@ -1,0 +1,58 @@
+package transaction.recovery.recordtype;
+
+import file.Page;
+import log.LogMgr;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import transaction.Transaction;
+import transaction.recovery.LogRecord;
+import transaction.recovery.SimpleLogRecordHeader;
+
+import java.util.ArrayList;
+import java.util.Optional;
+
+@Slf4j(topic = "RecoveryMgr")
+public class NQCheckpointRecord implements LogRecord {
+    @Getter
+    private final int operator = LogRecord.NQ_CHECKPOINT;
+
+    @Getter
+    private long txNum;
+
+    @Getter
+    private ArrayList<Long> runningTxNums;
+
+    /*
+    NQ Checkpoint is laid like so:
+    <operator (int), txNum (long), runningTxListLength (int), txNum1 (long), txNum2 (long), ... txNumN (long) >
+     */
+    public NQCheckpointRecord(Page page) {
+        SimpleLogRecordHeader header = new SimpleLogRecordHeader(page);
+        txNum = header.getTxNum();
+
+        int runningTxLengthPosition = Integer.BYTES + Long.BYTES;
+        int numRunningTransactions = page.getInt(runningTxLengthPosition);
+        int txNumListOffset = runningTxLengthPosition + Integer.BYTES;
+
+        ArrayList<Long> runningTxNums = new ArrayList<>();
+
+        for (int i = 0; i < numRunningTransactions; i++) {
+            runningTxNums.add(page.getLong(txNumListOffset));
+            txNumListOffset += Long.BYTES;
+        }
+    }
+
+    public String toString() {
+        return SimpleLogRecordHeader.recordToString(operator, txNum);
+    }
+
+    // Does nothing, because a checkpoint record contains no undo information.
+    public void undo(Transaction tx) {}
+
+    // Does nothing, because a checkpoint record contains no redo information.
+    public void redo(Transaction tx) {}
+
+    public static long writeToLog(LogMgr logMgr, long txNum, ArrayList<Long> runningTxNums) {
+        return LogRecord.writeToLog(logMgr, LogRecord.NQ_CHECKPOINT, txNum, Optional.of(runningTxNums));
+    }
+}
