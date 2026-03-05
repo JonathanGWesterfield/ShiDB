@@ -83,6 +83,23 @@ public class SetValueRecord<T> implements LogRecord {
         tx.unPin(block);
     }
 
+    @Override
+    public void redo(Transaction tx) {
+        tx.pin(block);
+        switch (operator) {
+            case LogRecord.SET_INT -> tx.setInt(block, oldValueOffset, (Integer) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_STRING -> tx.setString(block, newValueOffset, (String) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_BYTE -> tx.setByte(block, newValueOffset, (Byte) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_BOOLEAN -> tx.setBoolean(block, newValueOffset, (Boolean) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_SHORT -> tx.setShort(block, newValueOffset, (Short) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_LONG -> tx.setLong(block, newValueOffset, (Long) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_DOUBLE -> tx.setDouble(block, newValueOffset, (Double) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_DATETIME -> tx.setDateTime(block, newValueOffset, (LocalDateTime) newValue, ShouldLog.DO_NOT_LOG);
+            default -> throw new RuntimeException("Unsupported operator: " + operator);
+        }
+        tx.unPin(block);
+    }
+
     /* Writing to log (undo-only / redo-only). The data format for undo and redo only is the same, it just depends
      on if the RecoveryMgr interprets the value as the old value or the new value, to undo or redo respectively
 

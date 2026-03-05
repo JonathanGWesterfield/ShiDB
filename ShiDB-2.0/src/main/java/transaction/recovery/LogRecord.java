@@ -4,10 +4,8 @@ import file.BlockId;
 import file.Page;
 import log.LogMgr;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.util.TriConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 import transaction.Transaction;
 
 import java.util.function.BiConsumer;
@@ -140,5 +138,6 @@ public interface LogRecord {
     int getOperator();
     long getTxNum();
     void undo(Transaction tx);
+    void redo(Transaction tx);
     String toString();
 }
