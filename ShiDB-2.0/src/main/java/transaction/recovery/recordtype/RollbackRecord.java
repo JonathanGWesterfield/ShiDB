@@ -34,6 +34,9 @@ public class RollbackRecord implements LogRecord {
     // Does nothing, because a rollback record contains no undo information.
     public void undo(Transaction tx) {}
 
+    // Does nothing, because a rollback record contains no redo information.
+    public void redo(Transaction tx) {}
+
     public static long writeToLog(LogMgr logMgr, long txNum) {
         RollbackRecord record = new RollbackRecord(txNum);
 

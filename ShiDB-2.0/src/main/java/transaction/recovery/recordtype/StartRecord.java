@@ -33,6 +33,9 @@ public class StartRecord implements LogRecord {
     // Does nothing, because a start record contains no undo information.
     public void undo(Transaction tx) {}
 
+    // Does nothing, because a StartRecord record contains no redo information.
+    public void redo(Transaction tx) {}
+
     public static long writeToLog(LogMgr logMgr, long txNum) {
         StartRecord record = new StartRecord(txNum);
 

@@ -33,6 +33,9 @@ public class CommitRecord implements LogRecord {
     // Does nothing, because a commit record contains no undo information.
     public void undo(Transaction tx) {}
 
+    // Does nothing, because a commit record contains no redo information.
+    public void redo(Transaction tx) {}
+
     public static long writeToLog(LogMgr logMgr, long txNum) {
         CommitRecord record = new CommitRecord(txNum);
 
