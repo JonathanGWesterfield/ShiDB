@@ -1,13 +1,12 @@
 package server;
 
 import buffer.BufferSelectionStrategy;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.core.JacksonException;
 import transaction.recovery.RecoveryMgrStrategy;
 
 import java.io.File;
-
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Map;
 
@@ -31,7 +30,7 @@ public class ConfigFetcher {
 
             configMap = mapper.readValue(configFile, Map.class);
         }
-        catch(JacksonException e) {
+        catch(IOException e) {
             throw new RuntimeException("Failed to map the config file to Java Map! " + e.toString());
         }
     }
