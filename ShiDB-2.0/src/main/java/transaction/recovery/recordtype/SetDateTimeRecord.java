@@ -5,60 +5,45 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import transaction.ShouldLog;
 import transaction.Transaction;
-import transaction.recovery.DataLogRecordHeader;
 import transaction.recovery.LogRecord;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 @Slf4j(topic = "RecoveryMgr")
 public class SetDateTimeRecord implements LogRecord {
     @Getter
-    private final int operator = LogRecord.SET_DATETIME;
+    private static final int operator = LogRecord.SET_DATETIME;
 
-    @Getter
-    private long txNum;
-
-    @Getter
-    private LocalDateTime value;
-
-    @Getter
-    private int offset;
-
-    @Getter
-    private BlockId block;
+    private final SetValueRecord<LocalDateTime> inner;
 
     public SetDateTimeRecord(Page page) {
-        DataLogRecordHeader header = new DataLogRecordHeader(page);
-        this.txNum = header.getTxNum();
-        this.block = header.getBlock();
-        this.offset = header.getOffset();
-
-        value = page.getDateTime(header.getValuePosition());
+        this.inner = new SetValueRecord<>(operator, PageCodecs.DATE_TIME, page);
     }
 
+    @Override
+    public long getTxNum() {
+        return inner.getTxNum();
+    }
+
+    @Override
     public void undo(Transaction tx) {
-        tx.pin(block);
-        tx.setDateTime(block, offset, value, ShouldLog.DO_NOT_LOG); // don't log the undo!
-        tx.unPin(block);
+        inner.undo(tx);
     }
 
+    @Override
     public String toString() {
-        return "<SET_DATETIME tx: " + txNum + ", block: " + block + ", offset: " + offset + ", value: " + value + ">";
+        return inner.toString();
     }
 
-    /* SET_DATETIME record is laid out as such:
-        <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (long)>
-    */
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, LocalDateTime value) {
-        long epoch = value.toEpochSecond(ZoneOffset.UTC);
+        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.DATE_TIME, txNum, block, offset, value);
+    }
 
-        log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
-                LogRecord.operatorToString(LogRecord.SET_DATETIME), txNum, block.filename(), block.blockNum(), offset, value);
-        return LogRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, txNum, block, offset, Long.BYTES,
-                (page, position) -> page.setLong(position, epoch));
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, LocalDateTime oldValue,
+                                  int newOffset, LocalDateTime newValue) {
+        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.DATE_TIME, txNum, block, oldOffset, oldValue,
+                newOffset, newValue);
     }
 }
 

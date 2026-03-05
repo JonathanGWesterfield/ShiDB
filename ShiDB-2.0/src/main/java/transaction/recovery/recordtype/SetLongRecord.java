@@ -5,54 +5,42 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import transaction.ShouldLog;
 import transaction.Transaction;
-import transaction.recovery.DataLogRecordHeader;
 import transaction.recovery.LogRecord;
 
 @Slf4j(topic = "RecoveryMgr")
 public class SetLongRecord implements LogRecord {
     @Getter
-    private final int operator = LogRecord.SET_LONG;
+    private static final int operator = LogRecord.SET_LONG;
 
-    @Getter
-    private long txNum;
-
-    @Getter
-    private long value;
-
-    @Getter
-    private int offset;
-
-    @Getter
-    private BlockId block;
+    private final SetValueRecord<Long> inner;
 
     public SetLongRecord(Page page) {
-        DataLogRecordHeader header = new DataLogRecordHeader(page);
-        this.txNum = header.getTxNum();
-        this.block = header.getBlock();
-        this.offset = header.getOffset();
-
-        value = page.getLong(header.getValuePosition());
+        this.inner = new SetValueRecord<>(operator, PageCodecs.LONG, page);
     }
 
+    @Override
+    public long getTxNum() {
+        return inner.getTxNum();
+    }
+
+    @Override
     public void undo(Transaction tx) {
-        tx.pin(block);
-        tx.setLong(block, offset, value, ShouldLog.DO_NOT_LOG); // don't log the undo!
-        tx.unPin(block);
+        inner.undo(tx);
     }
 
+    @Override
     public String toString() {
-        return "<SET_LONG tx: " + txNum + ", block: " + block + ", offset: " + offset + ", value: " + value + ">";
+        return inner.toString();
     }
 
-    /* SET_LONG record is laid out as such:
-        <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (long)>
-    */
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, long value) {
-        log.debug("Writing {} log record. TxNum: {}, filename: {}, Block Num: {}, offset: {}, value: {}",
-                LogRecord.operatorToString(LogRecord.SET_LONG), txNum, block.filename(), block.blockNum(), offset, value);
-        return LogRecord.writeToLog(logMgr, LogRecord.SET_LONG, txNum, block, offset, Long.BYTES,
-                (page, position) -> page.setLong(position, value));
+        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.LONG, txNum, block, offset, value);
+    }
+
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, long oldValue, int newOffset,
+                                  long newValue) {
+        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.LONG, txNum, block, oldOffset, oldValue,
+                newOffset, newValue);
     }
 }

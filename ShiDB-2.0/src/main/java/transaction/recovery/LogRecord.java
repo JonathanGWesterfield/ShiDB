@@ -3,15 +3,28 @@ package transaction.recovery;
 import file.BlockId;
 import file.Page;
 import log.LogMgr;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.TriConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import transaction.Transaction;
 
+import java.util.function.BiConsumer;
+
 /**
- * All complex log records like setInt and setString should be laid out within their byte buffers like so:
- * <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (depends on the record type)>
+ * All data log records like setInt and setString should be laid out within their byte buffers like so:
  *
- * All simple records like commit and rollback should be laid out like so:
+ * UNDO_ONLY and REDO_ONLY records are laid out as such:
+ * <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (T)>
+ *
+ * The UNDO-REDO logs will look like this
+ * <OPERATOR (int), txNum (long), filename (string), blockNum (int), oldValueOffset (int), oldValue (T), newValueOffset (int), newValue (T)>
+ *
+ * All simple records like commit and rollback should be laid out like so: (non-quiescent checkpoint records will be different)
  * <OPERATOR (int), txNum (long)>
  */
+@Slf4j
 public interface LogRecord {
     public static final int CHECKPOINT = 0, START = 1, COMMIT = 2, ROLLBACK = 3, SET_INT = 4, SET_STRING = 5,
             SET_BYTE = 6, SET_SHORT = 7, SET_LONG = 8, SET_DOUBLE = 9, SET_DATETIME = 10, SET_BOOLEAN = 11;
@@ -33,13 +46,54 @@ public interface LogRecord {
         };
     }
 
-    @FunctionalInterface
-    interface ValueWriter {
-        // This is just a fancy way of saying "pass an anonymous lambda in with this function signature so that we can
-        // call the correct page.set<data type>() function"
-        void write(Page page, int position);
+    // This is just a fancy way of saying "pass an anonymous lambda in with this function signature so that we can
+    // call the correct page.set<data type>() function"
+    record ValueWriter(BiConsumer<Page, Integer> writer, String strValue) {
+        void write(Page page, int position) {
+            writer.accept(page, position);
+        }
     }
 
+    // This is for complex strategies like redo-only and undo-redo. The log format is different
+    // Actually need params for oldValueByteSize and newValueByteSize for variable sized data like Strings
+    static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int oldValueOffset,int newValueOffset,
+                           int oldValueByteSize, int newValueByteSize, ValueWriter oldValueWriter, ValueWriter newValueWriter) {
+        int txPosition = Integer.BYTES;
+        int filenamePosition = txPosition + Long.BYTES;
+        int blockNumPosition = filenamePosition + Page.calcMaxByteLength(block.filename());
+
+        int oldValueOffsetPosition = blockNumPosition + Integer.BYTES;
+        int oldValuePosition = oldValueOffsetPosition + Integer.BYTES;
+
+        int newValueOffsetPosition = oldValueOffsetPosition + oldValueByteSize;
+        int newValuePosition = newValueOffsetPosition + Integer.BYTES;
+
+        int recordLength = newValuePosition + newValueByteSize;
+
+        byte[] record = new byte[recordLength];
+        Page page = new Page(record);
+
+        page.setInt(0, operator);
+        page.setLong(txPosition, txNum);
+        page.setString(filenamePosition, block.filename());
+        page.setInt(blockNumPosition, block.blockNum());
+
+        Logger log = LoggerFactory.getLogger("RecoverMgr");
+        log.debug("Writing log record: <{}, tx: {}, block: {}, oldValueOffset: {}, oldValue: {}, newValueOffset: {}, " +
+                        "newValue: {} >",
+                LogRecord.operatorToString(operator), txNum, block, oldValueOffset, oldValueWriter.strValue(),
+                newValueOffset, newValueWriter.strValue());
+
+        page.setInt(oldValueOffsetPosition, oldValueOffset);
+        oldValueWriter.write(page, oldValuePosition);
+
+        page.setInt(newValueOffsetPosition, newValueOffset);
+        newValueWriter.write(page, newValuePosition);
+
+        return logMgr.appendRecord(record);
+    }
+
+    // This is a simpler method for the simple needs of the undo-only or redo-only strategy
     static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int offset, int valueByteSize,
                            ValueWriter valueWriter) {
         int txPosition = Integer.BYTES;
@@ -59,11 +113,16 @@ public interface LogRecord {
         page.setInt(blockNumPosition, block.blockNum());
         page.setInt(offsetPosition, offset);
 
+        Logger log = LoggerFactory.getLogger("RecoverMgr");
+        log.debug("Writing log record: <{}, tx: {}, block: {}, offset: {}, value: {}>",
+                LogRecord.operatorToString(operator), txNum, block, offset, valueWriter.strValue);
+
         valueWriter.write(page, valuePosition);
 
         return logMgr.appendRecord(record);
     }
 
+    // log function for simple records like commit, rollback, start, etc.
     static long writeToLog(LogMgr logMgr, int operator, long txNum) {
         int txPosition = Integer.BYTES;
 
