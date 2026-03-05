@@ -11,7 +11,7 @@ import transaction.recovery.LogRecord;
 @Slf4j(topic = "RecoveryMgr")
 public class SetLongRecord implements LogRecord {
     @Getter
-    private static final int operator = LogRecord.SET_LONG;
+    private final int operator = LogRecord.SET_LONG;
 
     private final SetValueRecord<Long> inner;
 
@@ -30,17 +30,22 @@ public class SetLongRecord implements LogRecord {
     }
 
     @Override
+    public void redo(Transaction tx) {
+        inner.redo(tx);
+    }
+
+    @Override
     public String toString() {
         return inner.toString();
     }
 
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, long value) {
-        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.LONG, txNum, block, offset, value);
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_LONG, PageCodecs.LONG, txNum, block, offset, value);
     }
 
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, long oldValue, int newOffset,
                                   long newValue) {
-        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.LONG, txNum, block, oldOffset, oldValue,
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_LONG, PageCodecs.LONG, txNum, block, oldOffset, oldValue,
                 newOffset, newValue);
     }
 }

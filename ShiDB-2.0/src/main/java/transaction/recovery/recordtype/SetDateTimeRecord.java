@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Slf4j(topic = "RecoveryMgr")
 public class SetDateTimeRecord implements LogRecord {
     @Getter
-    private static final int operator = LogRecord.SET_DATETIME;
+    private final int operator = LogRecord.SET_DATETIME;
 
     private final SetValueRecord<LocalDateTime> inner;
 
@@ -32,17 +32,22 @@ public class SetDateTimeRecord implements LogRecord {
     }
 
     @Override
+    public void redo(Transaction tx) {
+        inner.redo(tx);
+    }
+
+    @Override
     public String toString() {
         return inner.toString();
     }
 
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, LocalDateTime value) {
-        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.DATE_TIME, txNum, block, offset, value);
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, PageCodecs.DATE_TIME, txNum, block, offset, value);
     }
 
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, LocalDateTime oldValue,
                                   int newOffset, LocalDateTime newValue) {
-        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.DATE_TIME, txNum, block, oldOffset, oldValue,
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, PageCodecs.DATE_TIME, txNum, block, oldOffset, oldValue,
                 newOffset, newValue);
     }
 }

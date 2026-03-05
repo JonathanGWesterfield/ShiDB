@@ -5,15 +5,13 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import transaction.ShouldLog;
 import transaction.Transaction;
-import transaction.recovery.DataLogRecordHeader;
 import transaction.recovery.LogRecord;
 
 @Slf4j(topic = "RecoveryMgr")
 public class SetBooleanRecord implements LogRecord {
     @Getter
-    private static final int operator = LogRecord.SET_BOOLEAN;
+    private final int operator = LogRecord.SET_BOOLEAN;
 
     private final SetValueRecord<Boolean> inner;
 
@@ -32,17 +30,22 @@ public class SetBooleanRecord implements LogRecord {
     }
 
     @Override
+    public void redo(Transaction tx) {
+        inner.redo(tx);
+    }
+
+    @Override
     public String toString() {
         return inner.toString();
     }
 
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, boolean value) {
-        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.BOOLEAN, txNum, block, offset, value);
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BOOLEAN, PageCodecs.BOOLEAN, txNum, block, offset, value);
     }
 
     public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset,
                                   boolean oldValue, int newOffset, boolean newValue) {
-        return SetValueRecord.writeToLog(logMgr, operator, PageCodecs.BOOLEAN, txNum, block, oldOffset, oldValue,
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BOOLEAN, PageCodecs.BOOLEAN, txNum, block, oldOffset, oldValue,
                 newOffset, newValue);
     }
 }
