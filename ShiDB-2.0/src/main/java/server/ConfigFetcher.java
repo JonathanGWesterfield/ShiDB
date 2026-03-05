@@ -4,10 +4,10 @@ import buffer.BufferSelectionStrategy;
 import lombok.Getter;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.core.JacksonException;
+import transaction.recovery.RecoveryMgrStrategy;
 
 import java.io.File;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Map;
 
@@ -95,5 +95,45 @@ public class ConfigFetcher {
         if (getConfigs().configMap.containsKey("buffer_mgr_pin_poll_step_milliseconds"))
             return Long.parseLong(getConfigs().configMap.get("buffer_mgr_pin_poll_step_milliseconds").toString());
         return 100L; // return a default wait time of 100 milliseconds
+    }
+
+    public static RecoveryMgrStrategy getRecoveryMgrStrategy() {
+        try {
+            String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
+            return RecoveryMgrStrategy.valueOf(configStrategy);
+        }
+        catch(IllegalArgumentException iae) {
+            String validStrategies = "";
+            for (RecoveryMgrStrategy strategy : RecoveryMgrStrategy.values())
+                validStrategies += "\"" + strategy + "\" ";
+
+            String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
+            String errorMsg = String.format("The \"recovery_manager_recovery_strategy\" field contains an unrecognized value: %s. Allowed values: %s", configStrategy, validStrategies);
+            throw new IllegalArgumentException(errorMsg);
+        }
+        catch(NullPointerException npe) {
+            return RecoveryMgrStrategy.UNDO_ONLY; // Code default if no value is present in the config
+        }
+    }
+
+    public static boolean isRecoveryStrategySimple() {
+        try {
+            String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
+            RecoveryMgrStrategy strategy = RecoveryMgrStrategy.valueOf(configStrategy);
+
+            return strategy == RecoveryMgrStrategy.UNDO_ONLY || strategy == RecoveryMgrStrategy.REDO_ONLY;
+        }
+        catch(IllegalArgumentException iae) {
+            String validStrategies = "";
+            for (RecoveryMgrStrategy strategy : RecoveryMgrStrategy.values())
+                validStrategies += "\"" + strategy + "\" ";
+
+            String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
+            String errorMsg = String.format("The \"recovery_manager_recovery_strategy\" field contains an unrecognized value: %s. Allowed values: %s", configStrategy, validStrategies);
+            throw new IllegalArgumentException(errorMsg);
+        }
+        catch(NullPointerException npe) {
+            return true; // Since the code default is UNDO_ONLY, it's therefore, a simple strategy
+        }
     }
 }

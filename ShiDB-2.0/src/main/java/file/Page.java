@@ -1,5 +1,7 @@
 package file;
 
+import lombok.NonNull;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -110,6 +112,21 @@ public class Page {
         return byteArr;
     }
 
+    public String getString(int offset) {
+        // No need to validate the offset since lower level functions will validate it
+        byte[] byteStr = getBytes(offset);
+        return new String(byteStr, CHARSET);
+    }
+
+    public int getExactStringByteLength(int offset) {
+        validateOffset(offset);
+
+        byteBuffer.position(offset);
+        int length = byteBuffer.getInt(offset);
+
+        return length;
+    }
+
     public void setBytes(int offset, byte[] val) {
         validateOffset(offset);
         validateValueWillFit(offset, val.length);
@@ -167,12 +184,6 @@ public class Page {
         byteBuffer.putDouble(offset, val);
     }
 
-    public String getString(int offset) {
-        // No need to validate the offset since lower level functions will validate it
-        byte[] byteStr = getBytes(offset);
-        return new String(byteStr, CHARSET);
-    }
-
     public void setString(int offset, String val) {
         // No need to validate the offset since lower level functions will validate it
 
@@ -187,7 +198,7 @@ public class Page {
      * @param str The string to evaluate
      * @return The maximum number of bytes needed to properly store a string based on the charset used
      */
-    public static int calcMaxByteLength(String str) {
+    public static int calcMaxByteLength(@NonNull String str) {
         int strLen = str.length();
         float bytesPerChar = CHARSET.newEncoder().maxBytesPerChar();
         return Integer.BYTES + (strLen * (int)bytesPerChar);
