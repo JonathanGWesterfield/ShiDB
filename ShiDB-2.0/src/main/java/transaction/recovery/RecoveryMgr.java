@@ -5,13 +5,19 @@ import buffer.BufferMgr;
 import file.BlockId;
 import log.LogMgr;
 import lombok.extern.slf4j.Slf4j;
+import server.ConfigFetcher;
 import transaction.Transaction;
 import transaction.recovery.recordtype.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
+
+/**
+ * Unfortunately, the BufferMgr is implemented with a "steal" policy, aka, buffers can be flushed to disk at any time in
+ * order to get pages to clients. It will flush a page to disk to pin a new block to it's buffer. This means that we
+ * can't implement redo-only logging since we need to make sure the that COMMIT log record is written BEFORE the buffer
+ * changes get flushed to disk
+ */
 
 @Slf4j(topic = "RecoveryMgr")
 public class RecoveryMgr {
@@ -46,6 +52,8 @@ public class RecoveryMgr {
         logMgr.flush(lsn);
     }
 
+    // TODO: Need to implement NQ checkpointing after implementing the ConcurrencyMgr and Transaction class
+    // I've already taken care of handling the NQ checkpoint in doRecover(). But I need the runningTx list
     public void recover() {
         doRecover();
         bufferMgr.flushAll(txNum);
@@ -57,7 +65,7 @@ public class RecoveryMgr {
         Iterator<byte[]> recordBytesIter = logMgr.iterator();
         while (recordBytesIter.hasNext()) {
             byte[] recordBytes = recordBytesIter.next();
-            LogRecord record = LogRecordFactory.createLogRecord(recordBytes);
+            LogRecord record = LogRecordFactory.convertToLogRecord(recordBytes);
 
             if (record.getTxNum() == txNum) {
                 if (record.getOperator() == LogRecord.START)
@@ -69,15 +77,37 @@ public class RecoveryMgr {
     }
 
     private void doRecover() {
+        switch (ConfigFetcher.getRecoveryMgrStrategy()) {
+            case RecoveryMgrStrategy.UNDO_REDO -> doRecoverUndoRedo();
+            default -> doRecoverUndoOnly();
+        }
+    }
+
+    private void doRecoverUndoRedo() {
+        // TODO: Implement this
+    }
+
+    private void doRecoverUndoOnly() {
         Set<Long> finishedTransactions = new HashSet<>();
+        Set<Long> startedTransactions = new HashSet<>();
+        List<Long> nqRunningTransactions = new ArrayList<>();
         Iterator<byte[]> recordBytesIter = logMgr.iterator();
 
         while (recordBytesIter.hasNext()) {
             byte[] recordBytes = recordBytesIter.next();
-            LogRecord record = LogRecordFactory.createLogRecord(recordBytes);
+            LogRecord record = LogRecordFactory.convertToLogRecord(recordBytes);
+
+            if (record.getOperator() == LogRecord.START)
+                startedTransactions.add(record.getTxNum());
 
             if (record.getOperator() == LogRecord.CHECKPOINT)
                 return;
+
+            if (record.getOperator() == LogRecord.NQ_CHECKPOINT) {
+                NQCheckpointRecord nqRecord = (NQCheckpointRecord) record; // Need to do this to cast the LogRecord
+                nqRunningTransactions = nqRecord.getRunningTxNums();
+                continue;
+            }
 
             if (record.getOperator() == LogRecord.COMMIT || record.getOperator() == LogRecord.ROLLBACK) {
                 finishedTransactions.add(record.getTxNum());
@@ -85,6 +115,11 @@ public class RecoveryMgr {
             else if (!finishedTransactions.contains(record.getTxNum())) {
                 record.undo(tx);
             }
+
+            // If we've seen all the running Tx's from the NQ checkpoint start records, then we know we've gone far
+            // enough back in the logs. We can stop now
+            if (!nqRunningTransactions.isEmpty() && startedTransactions.containsAll(nqRunningTransactions))
+                return;
         }
     }
 

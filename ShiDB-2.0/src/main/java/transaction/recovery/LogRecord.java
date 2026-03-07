@@ -31,6 +31,7 @@ public interface LogRecord {
     static String operatorToString(int operator) {
         return switch(operator) {
             case LogRecord.CHECKPOINT -> "CHECKPOINT";
+            case LogRecord.NQ_CHECKPOINT -> "NQ_CHECKPOINT";
             case LogRecord.START -> "START";
             case LogRecord.COMMIT -> "COMMIT";
             case LogRecord.SET_INT -> "SET_INT";
