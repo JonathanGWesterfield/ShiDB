@@ -3,11 +3,9 @@ package buffer;
 import file.BlockId;
 import file.FileMgr;
 import log.LogMgr;
-import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RingBufferMgrStrategy extends BufferMgr {
@@ -69,7 +67,7 @@ public class RingBufferMgrStrategy extends BufferMgr {
             evictBlockFromMappedBuffers(buffer);
 
             buffer.assignToBlock(block);
-            bufferBlockLUT.put(block.blockNum(), buffer);
+            bufferBlockLUT.put(block, buffer);
         } else {
             buffer = attemptFindExisting.value();
         }

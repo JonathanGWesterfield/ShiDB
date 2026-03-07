@@ -6,14 +6,13 @@ import log.LogMgr;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LRUBufferMgrStrategy extends BufferMgr {
     ArrayDeque<Buffer> freeBufferPool;
 
     // Since the freeBufferPool literally just pops things out, we need to keep track of which buffers we loaned out
-    HashMap<Integer, Buffer> inUseBufferMap;
+    HashMap<BlockId, Buffer> inUseBufferMap;
 
     public LRUBufferMgrStrategy(FileMgr fileMgr, LogMgr logMgr, int numBuffers) {
         this.fileMgr = fileMgr;
@@ -53,7 +52,7 @@ public class LRUBufferMgrStrategy extends BufferMgr {
             freeBufferPool.offer(buffer);
 
             if (buffer.getBlock() != null)
-                inUseBufferMap.remove(buffer.getBlock().blockNum());
+                inUseBufferMap.remove(buffer.getBlock());
 
             numAvailableBuffers.incrementAndGet();
             notifyAll();
@@ -79,8 +78,8 @@ public class LRUBufferMgrStrategy extends BufferMgr {
             evictBlockFromMappedBuffers(buffer);
 
             buffer.assignToBlock(block);
-            bufferBlockLUT.put(block.blockNum(), buffer);
-            inUseBufferMap.put(block.blockNum(), buffer);
+            bufferBlockLUT.put(block, buffer);
+            inUseBufferMap.put(block, buffer);
         }
         else {
             buffer = attemptFindExisting.value();

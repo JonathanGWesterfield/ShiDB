@@ -63,7 +63,7 @@ public class NaiveBufferMgrStrategy extends BufferMgr {
             evictBlockFromMappedBuffers(buffer);
 
             buffer.assignToBlock(block);
-            bufferBlockLUT.put(block.blockNum(), buffer);
+            bufferBlockLUT.put(block, buffer);
         }
         else {
             buffer = attemptFindExisting.value();

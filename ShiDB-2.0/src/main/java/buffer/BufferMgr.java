@@ -20,7 +20,7 @@ public abstract class BufferMgr {
     protected AtomicInteger numAvailableBuffers;
     protected FileMgr fileMgr;
 
-    HashMap<Integer, Buffer> bufferBlockLUT;
+    HashMap<BlockId, Buffer> bufferBlockLUT;
 
     private static final long MAX_TIME_WAIT_FOR_PIN_MILLISECONDS = ConfigFetcher.getBufferMgrMaxWaitTime();
     private static final long WAIT_TIME_STEP_MILLISECONDS = ConfigFetcher.getBufferMgrPollStepTime();
@@ -111,14 +111,14 @@ public abstract class BufferMgr {
     protected void evictBlockFromMappedBuffers(Buffer buffer) {
         // Evict from the existing block hashmap
         if (buffer.getBlock() != null) {
-            int previousBlockNum = buffer.getBlock().blockNum();
-            bufferBlockLUT.remove(previousBlockNum);
+            BlockId previousBlock = buffer.getBlock();
+            bufferBlockLUT.remove(previousBlock);
         }
     }
 
     protected Attempt<Buffer> findExistingBuffer(BlockId block) {
-        if (bufferBlockLUT.containsKey(block.blockNum()))
-            return Attempt.succeeded(bufferBlockLUT.get(block.blockNum()));
+        if (bufferBlockLUT.containsKey(block))
+            return Attempt.succeeded(bufferBlockLUT.get(block));
 
         return Attempt.failed();
     }

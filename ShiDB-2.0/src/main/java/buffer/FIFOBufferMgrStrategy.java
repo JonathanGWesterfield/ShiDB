@@ -14,7 +14,7 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
     PriorityQueue<Buffer> freeBufferPool;
 
     // Since the freeBufferPool literally just pops things out, we need to keep track of which buffers we loaned out
-    HashMap<Integer, Buffer> inUseBufferMap;
+    HashMap<BlockId, Buffer> inUseBufferMap;
 
     // Comparator to make sure our priority queue returns the least recently pinned buffers first
     Comparator<Buffer> leastRecentlyPinned = new Comparator<Buffer>() {
@@ -72,7 +72,7 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
             freeBufferPool.offer(buffer);
 
             if (buffer.getBlock() != null)
-                inUseBufferMap.remove(buffer.getBlock().blockNum());
+                inUseBufferMap.remove(buffer.getBlock());
 
             numAvailableBuffers.incrementAndGet();
             notifyAll();
@@ -98,8 +98,8 @@ public class FIFOBufferMgrStrategy extends BufferMgr {
             evictBlockFromMappedBuffers(buffer);
 
             buffer.assignToBlock(block);
-            bufferBlockLUT.put(block.blockNum(), buffer);
-            inUseBufferMap.put(block.blockNum(), buffer);
+            bufferBlockLUT.put(block, buffer);
+            inUseBufferMap.put(block, buffer);
         }
         else {
             buffer = attemptFindExisting.value();
