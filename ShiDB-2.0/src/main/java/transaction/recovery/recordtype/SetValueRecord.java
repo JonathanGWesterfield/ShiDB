@@ -87,7 +87,7 @@ public class SetValueRecord<T> implements LogRecord {
     public void redo(Transaction tx) {
         tx.pin(block);
         switch (operator) {
-            case LogRecord.SET_INT -> tx.setInt(block, oldValueOffset, (Integer) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_INT -> tx.setInt(block, newValueOffset, (Integer) newValue, ShouldLog.DO_NOT_LOG);
             case LogRecord.SET_STRING -> tx.setString(block, newValueOffset, (String) newValue, ShouldLog.DO_NOT_LOG);
             case LogRecord.SET_BYTE -> tx.setByte(block, newValueOffset, (Byte) newValue, ShouldLog.DO_NOT_LOG);
             case LogRecord.SET_BOOLEAN -> tx.setBoolean(block, newValueOffset, (Boolean) newValue, ShouldLog.DO_NOT_LOG);

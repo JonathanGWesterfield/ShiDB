@@ -34,7 +34,7 @@ public class NQCheckpointRecord implements LogRecord {
         int numRunningTransactions = page.getInt(runningTxLengthPosition);
         int txNumListOffset = runningTxLengthPosition + Integer.BYTES;
 
-        ArrayList<Long> runningTxNums = new ArrayList<>();
+        this.runningTxNums = new ArrayList<>();
 
         for (int i = 0; i < numRunningTransactions; i++) {
             runningTxNums.add(page.getLong(txNumListOffset));
@@ -43,7 +43,7 @@ public class NQCheckpointRecord implements LogRecord {
     }
 
     public String toString() {
-        return SimpleLogRecordHeader.recordToString(operator, txNum);
+        return "<" + LogRecord.operatorToString(operator) + ", tx: " + txNum + ", runningTxNums: " + runningTxNums.toString() + ">";
     }
 
     // Does nothing, because a checkpoint record contains no undo information.
