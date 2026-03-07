@@ -5,7 +5,7 @@ My attempt to create a *very* simple database from scratch to figure out how the
 
 Am following Edward Sciore Database Design and Implementation. The unedited SimpleDB code is in this repo as well under the `SimpleDB_3.3` as my example when I get stuck or the textbook has an errata. 
 
-Maybe when I'm done, I'll try to make it more advanced using the [Database Systems Textbook.](https://people.inf.elte.hu/miiqaai/elektroModulatorDva.pdf)
+Maybe when I'm done, I'll try to make it more advanced using the [Database Systems Textbook.](https://github.com/JonathanGWesterfield/CSCE-310/blob/master/Database-Systems-The-Complete-Book.pdf)
 
 More resources can be found in this [StackOverflow post](https://softwareengineering.stackexchange.com/questions/121653/create-my-own-database-system)
 
