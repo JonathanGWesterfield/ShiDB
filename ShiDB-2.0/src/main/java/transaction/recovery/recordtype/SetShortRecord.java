@@ -13,6 +13,9 @@ public class SetShortRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_SHORT;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<Short> inner;
 
     public SetShortRecord(Page page) {

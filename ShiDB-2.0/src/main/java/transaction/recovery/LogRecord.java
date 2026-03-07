@@ -170,4 +170,6 @@ public interface LogRecord {
     void redo(Transaction tx);
 
     String toString();
+
+    boolean isDataRecord();
 }

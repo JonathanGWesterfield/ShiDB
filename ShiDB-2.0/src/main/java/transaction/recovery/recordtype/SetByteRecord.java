@@ -13,6 +13,9 @@ public class SetByteRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_BYTE;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<Byte> inner;
 
     public SetByteRecord(Page page) {

@@ -15,6 +15,9 @@ public class SetDateTimeRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_DATETIME;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<LocalDateTime> inner;
 
     public SetDateTimeRecord(Page page) {

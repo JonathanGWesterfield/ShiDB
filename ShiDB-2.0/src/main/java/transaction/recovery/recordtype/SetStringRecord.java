@@ -13,6 +13,9 @@ public class SetStringRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_STRING;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<String> inner;
 
     public SetStringRecord(Page page) {

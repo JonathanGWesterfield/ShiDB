@@ -10,12 +10,13 @@ import transaction.recovery.SimpleLogRecordHeader;
 
 import java.util.Optional;
 
+@Getter
 @Slf4j(topic = "RecoveryMgr")
 public class CommitRecord implements LogRecord {
-    @Getter
     private final int operator = LogRecord.COMMIT;
 
-    @Getter
+    private final boolean isDataRecord = false;
+
     private long txNum;
 
     public CommitRecord(Page page) {

@@ -11,15 +11,15 @@ import transaction.recovery.SimpleLogRecordHeader;
 import java.util.ArrayList;
 import java.util.Optional;
 
+@Getter
 @Slf4j(topic = "RecoveryMgr")
 public class NQCheckpointRecord implements LogRecord {
-    @Getter
     private final int operator = LogRecord.NQ_CHECKPOINT;
 
-    @Getter
+    private final boolean isDataRecord = false;
+
     private long txNum;
 
-    @Getter
     private ArrayList<Long> runningTxNums;
 
     /*

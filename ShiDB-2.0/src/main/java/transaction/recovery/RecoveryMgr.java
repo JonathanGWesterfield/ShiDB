@@ -16,7 +16,7 @@ import java.util.*;
  * Unfortunately, the BufferMgr is implemented with a "steal" policy, aka, buffers can be flushed to disk at any time in
  * order to get pages to clients. It will flush a page to disk to pin a new block to it's buffer. This means that we
  * can't implement redo-only logging since we need to make sure the that COMMIT log record is written BEFORE the buffer
- * changes get flushed to disk
+ * changes get flushed to disk for that strategy to work.
  */
 
 @Slf4j(topic = "RecoveryMgr")
@@ -83,18 +83,75 @@ public class RecoveryMgr {
         }
     }
 
+    // CURRENT IMPLEMENTATION DOESN'T ACCOUNT FOR NQ CHECKPOINTING
     private void doRecoverUndoRedo() {
-        // TODO: Implement this
+        Deque<LogRecord> records = getLogsUntilCheckpoint();
+        Set<Long> incompleteTxs = redoTxs(records);
 
-        /*
-        Steps:
-        1. go backwards in the log until we hit the beginning or a checkpoint.
-        2. go forwards for every log and call the redo function
-          2a. Need to keep track of all transactions that we saw a start for, but not a corresponding commit or rollback
-                log for so the undo portion only focuses on undoing those logs.
-        3. Call the undo-only recover function to take care of the undo portion of the algorithm (might have to make
-        a modification so it doesn't directly use the logMgr logs
-         */
+        if (!incompleteTxs.isEmpty())
+            undoIncompleteTxs(records, incompleteTxs);
+    }
+
+    private void undoIncompleteTxs(Deque<LogRecord> records, Set<Long> incompleteTxs) {
+        // Need to invert the records stack so we go from newest log records backwards in time to oldest record
+        Iterator<LogRecord> inverseRecordsStack = records.descendingIterator();
+
+        while (inverseRecordsStack.hasNext()) {
+            LogRecord record = inverseRecordsStack.next();
+
+            if (incompleteTxs.contains(record.getTxNum())) {
+                if (record.getOperator() == LogRecord.START)
+                    incompleteTxs.remove(record.getTxNum());
+                else
+                    record.undo(tx);
+            }
+
+            if (incompleteTxs.isEmpty())
+                break;
+        }
+    }
+
+    private Set<Long> redoTxs(Deque<LogRecord> records) {
+        Set<Long> incompleteTxs = new HashSet<>();
+
+        // Going in the forwards order of the stack, we get the forwards direction of the log stream
+        for (LogRecord record : records) {
+            if (record.getOperator() == LogRecord.COMMIT || record.getOperator() == LogRecord.ROLLBACK) {
+                incompleteTxs.remove(record.getTxNum());
+                continue;
+            }
+
+            if (record.getOperator() == LogRecord.START) {
+                incompleteTxs.add(record.getTxNum());
+                continue;
+            }
+
+            if (record.isDataRecord())
+                record.redo(tx);
+        }
+
+        return incompleteTxs;
+    }
+
+    private Deque<LogRecord> getLogsUntilCheckpoint() {
+        Deque<LogRecord> recordsStack = new ArrayDeque<>();
+        Iterator<byte[]> recordBytesIter = logMgr.iterator();
+
+        while (recordBytesIter.hasNext()) {
+            byte[] recordBytes = recordBytesIter.next();
+            LogRecord record = LogRecordFactory.convertToLogRecord(recordBytes);
+
+            // If we exit the loop, but never hit a checkpoint, assume we hit the end of the log file
+            if (record.getOperator() == LogRecord.CHECKPOINT)
+                break;
+
+            recordsStack.push(record);
+        }
+
+        if (recordsStack.isEmpty())
+            log.debug("The record stack is empty! May be an issue, may be valid.");
+
+        return recordsStack;
     }
 
     private void doRecoverUndoOnly() {

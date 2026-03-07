@@ -10,12 +10,13 @@ import transaction.recovery.SimpleLogRecordHeader;
 
 import java.util.Optional;
 
+@Getter
 @Slf4j(topic = "RecoveryMgr")
 public class CheckpointRecord implements LogRecord {
-    @Getter
     private final int operator = LogRecord.CHECKPOINT;
 
-    @Getter
+    private final boolean isDataRecord = false;
+
     private long txNum;
 
     public CheckpointRecord(Page page) {

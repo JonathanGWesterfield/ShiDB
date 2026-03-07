@@ -13,6 +13,9 @@ public class SetDoubleRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_DOUBLE;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<Double> inner;
 
     public SetDoubleRecord(Page page) {

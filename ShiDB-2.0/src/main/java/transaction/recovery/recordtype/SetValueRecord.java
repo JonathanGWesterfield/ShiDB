@@ -12,23 +12,20 @@ import transaction.recovery.LogRecord;
 
 import java.time.LocalDateTime;
 
+@Getter
 public class SetValueRecord<T> implements LogRecord {
-    @Getter
     private final int operator;
 
-    @Getter
     private final PageCodec<T> codec;
 
-    @Getter
+    private final boolean isDataRecord = true;
+
     private long txNum;
 
-    @Getter
     private BlockId block;
 
-    @Getter
     private T oldValue, newValue;
 
-    @Getter
     private int oldValueOffset, newValueOffset;
 
     public SetValueRecord(int operator, PageCodec<T> codec, Page page) {

@@ -10,13 +10,14 @@ import transaction.recovery.SimpleLogRecordHeader;
 
 import java.util.Optional;
 
+@Getter
 @Slf4j(topic = "RecoveryMgr")
 public class RollbackRecord implements LogRecord {
 
-    @Getter
     private final int operator = LogRecord.ROLLBACK;
 
-    @Getter
+    private final boolean isDataRecord = false;
+
     private long txNum;
 
     public RollbackRecord(Page page) {

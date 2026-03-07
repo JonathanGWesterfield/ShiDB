@@ -13,6 +13,9 @@ public class SetLongRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_LONG;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<Long> inner;
 
     public SetLongRecord(Page page) {

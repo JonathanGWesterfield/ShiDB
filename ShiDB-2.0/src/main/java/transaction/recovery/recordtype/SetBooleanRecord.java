@@ -13,6 +13,9 @@ public class SetBooleanRecord implements LogRecord {
     @Getter
     private final int operator = LogRecord.SET_BOOLEAN;
 
+    @Getter
+    private final boolean isDataRecord = true;
+
     private final SetValueRecord<Boolean> inner;
 
     public SetBooleanRecord(Page page) {
