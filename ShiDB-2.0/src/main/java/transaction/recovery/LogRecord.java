@@ -65,7 +65,7 @@ public interface LogRecord {
         int oldValueOffsetPosition = blockNumPosition + Integer.BYTES;
         int oldValuePosition = oldValueOffsetPosition + Integer.BYTES;
 
-        int newValueOffsetPosition = oldValueOffsetPosition + oldValueByteSize;
+        int newValueOffsetPosition = oldValuePosition + oldValueByteSize;
         int newValuePosition = newValueOffsetPosition + Integer.BYTES;
 
         int recordLength = newValuePosition + newValueByteSize;

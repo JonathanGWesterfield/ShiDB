@@ -85,6 +85,16 @@ public class RecoveryMgr {
 
     private void doRecoverUndoRedo() {
         // TODO: Implement this
+
+        /*
+        Steps:
+        1. go backwards in the log until we hit the beginning or a checkpoint.
+        2. go forwards for every log and call the redo function
+          2a. Need to keep track of all transactions that we saw a start for, but not a corresponding commit or rollback
+                log for so the undo portion only focuses on undoing those logs.
+        3. Call the undo-only recover function to take care of the undo portion of the algorithm (might have to make
+        a modification so it doesn't directly use the logMgr logs
+         */
     }
 
     private void doRecoverUndoOnly() {
