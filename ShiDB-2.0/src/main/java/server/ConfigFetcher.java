@@ -69,6 +69,18 @@ public class ConfigFetcher {
         }
     }
 
+    public static String getDBFileDirectory() {
+        if (getConfigs().configMap.containsKey("database_directory"))
+            return getConfigs().configMap.get("database_directory").toString();
+        return "ShiDB-Dir"; // I have no idea where this will end up, but at least I know it's name...
+    }
+
+    public static String getDBLogFileName() {
+        if (getConfigs().configMap.containsKey("database_log_file"))
+            return getConfigs().configMap.get("database_log_file").toString();
+        return "shidb-2.0.log"; // I have no idea where this will end up, but at least I know it's name...
+    }
+
     public static int getDBFileBlockSize() {
         if (getConfigs().configMap.containsKey("db_file_block_size"))
             return (int) getConfigs().configMap.get("db_file_block_size");

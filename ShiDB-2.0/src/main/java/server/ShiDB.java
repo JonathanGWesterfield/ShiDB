@@ -5,6 +5,7 @@ import file.FileMgr;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.Setter;
+import transaction.Transaction;
 import transaction.concurrency.TransactionRegistrySingleton;
 
 import java.io.File;
@@ -38,7 +39,9 @@ public class ShiDB {
     public ShiDB(String dirName, int blockSize) throws IOException {
         File dbDirectory = new File(dirName);
         this.fileMgr = new FileMgr(dbDirectory, blockSize);
-        this.logMgr = new LogMgr(fileMgr, LOG_FILE);
+
+        String logFilename = ConfigFetcher.getDBLogFileName();
+        this.logMgr = new LogMgr(fileMgr, logFilename);
     }
 
     /**
@@ -49,12 +52,46 @@ public class ShiDB {
      */
     public ShiDB(String dirName, int blockSize, int bufferSize) throws IOException {
         File dbDirectory = new File(dirName);
+        boolean isNewDatabase = !dbDirectory.exists();
+
         this.fileMgr = new FileMgr(dbDirectory, blockSize);
-        this.logMgr = new LogMgr(fileMgr, LOG_FILE);
+        this.logMgr = new LogMgr(fileMgr, ConfigFetcher.getDBLogFileName());
         this.bufferMgr = getCorrectBufferMgr(null, bufferSize);
+
+        startDBRecovery(isNewDatabase);
 
         this.txRegistry = TransactionRegistrySingleton.getInstance();
         txRegistry.setLogMgr(logMgr);
+    }
+
+    /**
+     * THIS IS THE MAIN CONSTRUCTOR THE SHIDB. ALL OTHERS ARE USED FOR UNIT TESTS
+     * This fully utilizes the config to set itself up
+      */
+    public ShiDB() throws IOException {
+        File dbDirectory = new File(ConfigFetcher.getDBFileDirectory());
+        boolean isNewDatabase = !dbDirectory.exists();
+
+        int fileBlockSize = ConfigFetcher.getDBFileBlockSize();
+        this.fileMgr = new FileMgr(dbDirectory, fileBlockSize);
+        this.logMgr = new LogMgr(fileMgr, ConfigFetcher.getDBLogFileName());
+        this.bufferMgr = getCorrectBufferMgr(null, null);
+
+        this.txRegistry = TransactionRegistrySingleton.getInstance();
+        txRegistry.setLogMgr(logMgr);
+
+        startDBRecovery(isNewDatabase);
+    }
+
+    // We need to ensure that database recover is run on startup regardless of a crash or not. We can skip recovery
+    // if this database is literally brand new since no transactions have ever been made
+    private void startDBRecovery(boolean isNewDatabase) {
+        if (isNewDatabase)
+            return;
+
+        Transaction recoveryTx = new Transaction(fileMgr, logMgr, bufferMgr);
+        recoveryTx.recover();
+        recoveryTx.commit();
     }
 
     /**
@@ -68,7 +105,7 @@ public class ShiDB {
     public ShiDB(String dirName, int blockSize, int bufferSize, BufferSelectionStrategy bufferStrategy) throws IOException {
         File dbDirectory = new File(dirName);
         this.fileMgr = new FileMgr(dbDirectory, blockSize);
-        this.logMgr = new LogMgr(fileMgr, LOG_FILE);
+        this.logMgr = new LogMgr(fileMgr, ConfigFetcher.getDBLogFileName());
         this.bufferMgr = getCorrectBufferMgr(bufferStrategy, bufferSize);
     }
 

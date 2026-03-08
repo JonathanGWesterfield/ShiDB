@@ -1,4 +1,6 @@
 {
+    "database_directory": "ShiDB-Dir",
+    "database_log_file": "shidb-2.0.log",
     "buffer_mgr_selection_strategy": "NAIVE",
     "_selection_strategies": [
         "NAIVE",
