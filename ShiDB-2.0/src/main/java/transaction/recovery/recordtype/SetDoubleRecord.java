@@ -46,10 +46,10 @@ public class SetDoubleRecord implements LogRecord {
         return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DOUBLE, PageCodecs.DOUBLE, txNum, block, offset, value);
     }
 
-    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, double oldValue, int newOffset,
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, double oldValue,
                                   double newValue) {
-        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DOUBLE, PageCodecs.DOUBLE, txNum, block, oldOffset, oldValue,
-                newOffset, newValue);
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DOUBLE, PageCodecs.DOUBLE, txNum, block, offset, oldValue,
+                newValue);
     }
 }
 

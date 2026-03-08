@@ -46,10 +46,10 @@ public class SetBooleanRecord implements LogRecord {
         return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BOOLEAN, PageCodecs.BOOLEAN, txNum, block, offset, value);
     }
 
-    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset,
-                                  boolean oldValue, int newOffset, boolean newValue) {
-        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BOOLEAN, PageCodecs.BOOLEAN, txNum, block, oldOffset, oldValue,
-                newOffset, newValue);
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, boolean oldValue,
+                                  boolean newValue) {
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BOOLEAN, PageCodecs.BOOLEAN, txNum, block, offset, oldValue,
+                 newValue);
     }
 }
 

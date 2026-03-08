@@ -46,9 +46,8 @@ public class SetStringRecord implements LogRecord {
         return SetValueRecord.writeToLog(logMgr, LogRecord.SET_STRING, PageCodecs.STRING, txNum, block, offset, value);
     }
 
-    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, String oldValue,
-                                  int newOffset, String newValue) {
-        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_STRING, PageCodecs.STRING, txNum, block, oldOffset, oldValue,
-                newOffset, newValue);
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, String oldValue, String newValue) {
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_STRING, PageCodecs.STRING, txNum, block, offset, oldValue,
+                newValue);
     }
 }

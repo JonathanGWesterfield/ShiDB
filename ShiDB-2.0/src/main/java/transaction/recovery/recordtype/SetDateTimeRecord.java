@@ -48,10 +48,10 @@ public class SetDateTimeRecord implements LogRecord {
         return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, PageCodecs.DATE_TIME, txNum, block, offset, value);
     }
 
-    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, LocalDateTime oldValue,
-                                  int newOffset, LocalDateTime newValue) {
-        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, PageCodecs.DATE_TIME, txNum, block, oldOffset, oldValue,
-                newOffset, newValue);
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, LocalDateTime oldValue,
+                                  LocalDateTime newValue) {
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_DATETIME, PageCodecs.DATE_TIME, txNum, block, offset, oldValue,
+                newValue);
     }
 }
 

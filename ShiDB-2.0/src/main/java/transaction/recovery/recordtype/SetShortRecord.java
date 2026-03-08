@@ -46,10 +46,9 @@ public class SetShortRecord implements LogRecord {
         return SetValueRecord.writeToLog(logMgr, LogRecord.SET_SHORT, PageCodecs.SHORT, txNum, block, offset, value);
     }
 
-    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, short oldValue, int newOffset,
-                                  short newValue) {
-        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_SHORT, PageCodecs.SHORT, txNum, block, oldOffset, oldValue,
-                newOffset, newValue);
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, short oldValue, short newValue) {
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_SHORT, PageCodecs.SHORT, txNum, block, offset, oldValue,
+                newValue);
     }
 }
 

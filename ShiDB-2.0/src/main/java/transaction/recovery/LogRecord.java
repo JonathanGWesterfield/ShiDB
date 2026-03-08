@@ -18,7 +18,7 @@ import java.util.function.BiConsumer;
  * <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), value (T)>
  *
  * The UNDO-REDO logs will look like this
- * <OPERATOR (int), txNum (long), filename (string), blockNum (int), oldValueOffset (int), oldValue (T), newValueOffset (int), newValue (T)>
+ * <OPERATOR (int), txNum (long), filename (string), blockNum (int), oldValueOffset (int), oldValue (T), newValue (T)>
  *
  * All simple records like commit and rollback should be laid out like so: (non-quiescent checkpoint records will be different)
  * <OPERATOR (int), txNum (long)>
@@ -56,7 +56,7 @@ public interface LogRecord {
 
     // This is for complex strategies like redo-only and undo-redo. The log format is different
     // Actually need params for oldValueByteSize and newValueByteSize for variable sized data like Strings
-    static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int oldValueOffset,int newValueOffset,
+    static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int offset,
                            int oldValueByteSize, int newValueByteSize, ValueWriter oldValueWriter, ValueWriter newValueWriter) {
         int txPosition = Integer.BYTES;
         int filenamePosition = txPosition + Long.BYTES;
@@ -65,8 +65,7 @@ public interface LogRecord {
         int oldValueOffsetPosition = blockNumPosition + Integer.BYTES;
         int oldValuePosition = oldValueOffsetPosition + Integer.BYTES;
 
-        int newValueOffsetPosition = oldValuePosition + oldValueByteSize;
-        int newValuePosition = newValueOffsetPosition + Integer.BYTES;
+        int newValuePosition = oldValuePosition + oldValueByteSize;
 
         int recordLength = newValuePosition + newValueByteSize;
 
@@ -79,15 +78,13 @@ public interface LogRecord {
         page.setInt(blockNumPosition, block.blockNum());
 
         Logger log = LoggerFactory.getLogger("RecoverMgr");
-        log.debug("Writing log record: <{}, tx: {}, block: {}, oldValueOffset: {}, oldValue: {}, newValueOffset: {}, " +
-                        "newValue: {} >",
-                LogRecord.operatorToString(operator), txNum, block, oldValueOffset, oldValueWriter.strValue(),
-                newValueOffset, newValueWriter.strValue());
+        log.debug("Writing log record: <{}, tx: {}, block: {}, offset: {}, oldValue: {}, newValue: {} >",
+                LogRecord.operatorToString(operator), txNum, block, offset, oldValueWriter.strValue(),
+                newValueWriter.strValue());
 
-        page.setInt(oldValueOffsetPosition, oldValueOffset);
+        page.setInt(oldValueOffsetPosition, offset);
         oldValueWriter.write(page, oldValuePosition);
 
-        page.setInt(newValueOffsetPosition, newValueOffset);
         newValueWriter.write(page, newValuePosition);
 
         return logMgr.appendRecord(record);

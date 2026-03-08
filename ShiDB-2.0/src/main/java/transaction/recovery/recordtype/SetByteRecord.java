@@ -46,10 +46,10 @@ public class SetByteRecord implements LogRecord {
         return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BYTE, PageCodecs.BYTE, txNum, block, offset, value);
     }
 
-    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int oldOffset, byte oldValue, int newOffset,
+    public static long writeToLog(LogMgr logMgr, long txNum, BlockId block, int offset, byte oldValue,
                                   byte newValue) {
-        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BYTE, PageCodecs.BYTE, txNum, block, oldOffset, oldValue,
-                newOffset, newValue);
+        return SetValueRecord.writeToLog(logMgr, LogRecord.SET_BYTE, PageCodecs.BYTE, txNum, block, offset, oldValue,
+                newValue);
     }
 }
 

@@ -12,6 +12,11 @@ import transaction.recovery.LogRecord;
 
 import java.time.LocalDateTime;
 
+/* TODO: If in the future, we want to implement multiversion locking, then each of these log records also needs to
+    store a timestamp of when the record was written. Not hard, but need to refactor the writeToLog methods to take a
+    timestamp as well as the constructor
+ */
+
 @Getter
 public class SetValueRecord<T> implements LogRecord {
     private final int operator;
@@ -115,8 +120,8 @@ public class SetValueRecord<T> implements LogRecord {
      <OPERATOR (int), txNum (long), filename (string), blockNum (int), oldValueOffset (int), oldValue (T), newValueOffset (int), newValue (T)>
      */
     public static <T> long writeToLog(LogMgr logMgr, int operator, PageCodec<T> codec, long txNum, BlockId block,
-                                      int oldOffset, T oldValue, int newOffset, T newValue) {
-        return LogRecord.writeToLog(logMgr, operator, txNum, block, oldOffset, newOffset,
+                                      int offset, T oldValue, T newValue) {
+        return LogRecord.writeToLog(logMgr, operator, txNum, block, offset,
                 codec.byteSize(oldValue), codec.byteSize(newValue),
                 new ValueWriter((p, pos) -> codec.write(p, pos, oldValue), String.valueOf(oldValue)),
                 new ValueWriter((p, pos) -> codec.write(p, pos, newValue), String.valueOf(newValue)));
