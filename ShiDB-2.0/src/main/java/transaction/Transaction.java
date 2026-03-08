@@ -18,7 +18,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 @Slf4j
-public abstract class Transaction {
+public class Transaction {
 
     private static AtomicLong nextTxNum = new AtomicLong(0L);
 
