@@ -56,7 +56,7 @@ public class Buffer {
         contents = new Page(fileMgr.getBlocksize());
     }
 
-    public void setModified(int modifyingTxNum, long lsn) {
+    public void setModified(long modifyingTxNum, long lsn) {
         this.modifyingTxNum = modifyingTxNum;
         if (lsn >= 0)
             this.lsn = lsn;

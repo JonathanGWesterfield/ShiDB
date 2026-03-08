@@ -5,6 +5,7 @@ import file.FileMgr;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.Setter;
+import transaction.concurrency.TransactionRegistrySingleton;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +24,9 @@ public class ShiDB {
 
     @Getter @Setter
     private BufferMgr bufferMgr;
+
+    @Getter @Setter
+    private TransactionRegistrySingleton txRegistry;
 
 
     /**
@@ -48,6 +52,9 @@ public class ShiDB {
         this.fileMgr = new FileMgr(dbDirectory, blockSize);
         this.logMgr = new LogMgr(fileMgr, LOG_FILE);
         this.bufferMgr = getCorrectBufferMgr(null, bufferSize);
+
+        this.txRegistry = TransactionRegistrySingleton.getInstance();
+        txRegistry.setLogMgr(logMgr);
     }
 
     /**
