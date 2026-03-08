@@ -9,7 +9,7 @@ import log.LogMgr;
 import lombok.extern.slf4j.Slf4j;
 import transaction.concurrency.BufferList;
 import transaction.concurrency.ConcurrencyMgr;
-import transaction.concurrency.TransactionRegistrySingleton2;
+import transaction.concurrency.TransactionRegistrySingleton;
 import transaction.recovery.RecoveryMgr;
 
 import java.time.LocalDateTime;
@@ -45,7 +45,7 @@ public class Transaction {
 
         // This needs to get fetched first to potentially stop any new transactions from starting if we need to set
         // a quiescent checkpoint
-        TransactionRegistrySingleton2.getInstance().registerTx(txNum);
+        TransactionRegistrySingleton.getInstance().registerTx(txNum);
 
         recoveryMgr = new RecoveryMgr(this, txNum, logMgr, bufferMgr);
         concurrencyMgr = new ConcurrencyMgr();
@@ -56,7 +56,7 @@ public class Transaction {
         recoveryMgr.commit();
         concurrencyMgr.releaseAllLocks();
         ownedBuffers.unpinAll();
-        TransactionRegistrySingleton2.getInstance().deRegisterTx(txNum);
+        TransactionRegistrySingleton.getInstance().deRegisterTx(txNum);
         log.debug("Transaction: {} COMMITTED", txNum);
     }
 
@@ -64,7 +64,7 @@ public class Transaction {
         recoveryMgr.rollback();
         concurrencyMgr.releaseAllLocks();
         ownedBuffers.unpinAll();
-        TransactionRegistrySingleton2.getInstance().deRegisterTx(txNum);
+        TransactionRegistrySingleton.getInstance().deRegisterTx(txNum);
         log.debug("Transaction: {} ROLLED BACK", txNum);
     }
 
