@@ -29,8 +29,7 @@ public class ConfigFetcher {
             File configFile = Paths.get(configFilePath).toFile();
 
             configMap = mapper.readValue(configFile, Map.class);
-        }
-        catch(IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Failed to map the config file to Java Map! " + e.toString());
         }
     }
@@ -57,8 +56,7 @@ public class ConfigFetcher {
         try {
             String configStrategy = getConfigs().configMap.get("buffer_mgr_selection_strategy").toString();
             return BufferSelectionStrategy.valueOf(configStrategy);
-        }
-        catch(IllegalArgumentException iae) {
+        } catch (IllegalArgumentException iae) {
             String validStrategies = "";
             for (BufferSelectionStrategy strategy : BufferSelectionStrategy.values())
                 validStrategies += "\"" + strategy + "\" ";
@@ -66,8 +64,7 @@ public class ConfigFetcher {
             String configStrategy = getConfigs().configMap.get("buffer_mgr_selection_strategy").toString();
             String errorMsg = String.format("The \"buffer_mgr_selection_strategy\" field contains an unrecognized value: %s. Allowed values: %s", configStrategy, validStrategies);
             throw new IllegalArgumentException(errorMsg);
-        }
-        catch(NullPointerException npe) {
+        } catch (NullPointerException npe) {
             return BufferSelectionStrategy.NAIVE;
         }
     }
@@ -96,12 +93,45 @@ public class ConfigFetcher {
         return 100L; // return a default wait time of 100 milliseconds
     }
 
+    // Ensure that this value is larger than the Buffer Mgr max wait time. If the buffer mgr is deadlocking on pinning
+    // a buffer, it can cause the ConcurrencyMgr on top to also timeout. If the Concurrency Mgr times out first, it
+    // will mask the real cause of the timeout
+    public static long getConcurrencyMgrMaxWaitTime() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_acquire_lock_max_wait_time_milliseconds"))
+            return Long.parseLong(getConfigs().configMap.get("concurrency_mgr_acquire_lock_max_wait_time_milliseconds").toString());
+        return 15000L; // return a default wait time of 15 seconds
+    }
+
+    public static long getConcurrencyMgrPollStepTime() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_acquire_lock_poll_step_milliseconds"))
+            return Long.parseLong(getConfigs().configMap.get("concurrency_mgr_acquire_lock_poll_step_milliseconds").toString());
+        return 100L; // return a default wait time of 100 milliseconds
+    }
+
+    public static int getNumTransactionsPerCheckpoint() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_checkpoint_every_n_transactions"))
+            return Integer.parseInt(getConfigs().configMap.get("concurrency_mgr_checkpoint_every_n_transactions").toString());
+        return 20; // return a default of checkpointing every 20 transactio ns
+    }
+
+    public static boolean useNQCheckpointing() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_use_NQ_checkpoints"))
+            return Boolean.parseBoolean(getConfigs().configMap.get("concurrency_mgr_use_NQ_checkpoints").toString());
+        return false; // default to using quiescent checkpoints since they are the most basic
+    }
+
+    public static long getCheckpointingWaitPollStepTime() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_poll_step_waiting_for_transaction_drain_q_checkpoint_milliseconds"))
+            return Long.parseLong(getConfigs().configMap.get("concurrency_mgr_poll_step_waiting_for_transaction_drain_q_checkpoint_milliseconds").toString());
+        return 100L; // return a default wait time of 100 milliseconds
+
+    }
+
     public static RecoveryMgrStrategy getRecoveryMgrStrategy() {
         try {
             String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
             return RecoveryMgrStrategy.valueOf(configStrategy);
-        }
-        catch(IllegalArgumentException iae) {
+        } catch (IllegalArgumentException iae) {
             String validStrategies = "";
             for (RecoveryMgrStrategy strategy : RecoveryMgrStrategy.values())
                 validStrategies += "\"" + strategy + "\" ";
@@ -109,8 +139,7 @@ public class ConfigFetcher {
             String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
             String errorMsg = String.format("The \"recovery_manager_recovery_strategy\" field contains an unrecognized value: %s. Allowed values: %s", configStrategy, validStrategies);
             throw new IllegalArgumentException(errorMsg);
-        }
-        catch(NullPointerException npe) {
+        } catch (NullPointerException npe) {
             return RecoveryMgrStrategy.UNDO_ONLY; // Code default if no value is present in the config
         }
     }
@@ -121,8 +150,7 @@ public class ConfigFetcher {
             RecoveryMgrStrategy strategy = RecoveryMgrStrategy.valueOf(configStrategy);
 
             return strategy == RecoveryMgrStrategy.UNDO_ONLY || strategy == RecoveryMgrStrategy.REDO_ONLY;
-        }
-        catch(IllegalArgumentException iae) {
+        } catch (IllegalArgumentException iae) {
             String validStrategies = "";
             for (RecoveryMgrStrategy strategy : RecoveryMgrStrategy.values())
                 validStrategies += "\"" + strategy + "\" ";
@@ -130,8 +158,7 @@ public class ConfigFetcher {
             String configStrategy = getConfigs().configMap.get("recovery_manager_recovery_strategy").toString();
             String errorMsg = String.format("The \"recovery_manager_recovery_strategy\" field contains an unrecognized value: %s. Allowed values: %s", configStrategy, validStrategies);
             throw new IllegalArgumentException(errorMsg);
-        }
-        catch(NullPointerException npe) {
+        } catch (NullPointerException npe) {
             return true; // Since the code default is UNDO_ONLY, it's therefore, a simple strategy
         }
     }
