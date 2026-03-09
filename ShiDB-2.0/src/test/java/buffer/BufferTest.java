@@ -4,17 +4,24 @@ import file.BlockId;
 import file.Page;
 import file.FileMgr;
 import log.LogMgr;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import server.ConfigFetcher;
 import server.ShiDB;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class BufferTest {
+
+    private final String TEST_DIR = "Buffer-unit-test";
 
     @Mock
     FileMgr fileMgr;
@@ -30,7 +37,7 @@ class BufferTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        this.shiDB = new ShiDB("Buffer-unit-test", ConfigFetcher.getDBFileBlockSize(), ConfigFetcher.getSizeOfBufferPool());
+        this.shiDB = new ShiDB(TEST_DIR, ConfigFetcher.getDBFileBlockSize(), ConfigFetcher.getSizeOfBufferPool());
 
         this.fileMgr = shiDB.getFileMgr();
         this.logMgr = shiDB.getLogMgr();
@@ -43,6 +50,21 @@ class BufferTest {
         int position1 = 80;
         page.setInt(position1, 345);
         fileMgr.writePageToDisk(block, page);
+    }
+
+    @AfterEach
+    void cleanUp() throws IOException {
+        deleteDirectory(TEST_DIR);
+    }
+
+    private void deleteDirectory(String dirName) throws IOException {
+        Path path = Path.of(dirName);
+        if (Files.exists(path)) {
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        }
     }
 
     @Test

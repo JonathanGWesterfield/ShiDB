@@ -2,19 +2,24 @@ package log;
 
 import file.FileMgr;
 import file.Page;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import server.ShiDB;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class LogMgrTest {
+    private final String TEST_DIR = "Log-unit-test";
 
     private FileMgr fileMgr;
     private ShiDB shiDB;
@@ -54,14 +59,28 @@ class LogMgrTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        String testDir = "Log-unit-test";
-        shiDB = new ShiDB(testDir, 600);
+        shiDB = new ShiDB(TEST_DIR, 600);
         fileMgr = shiDB.getFileMgr();
         logMgr = shiDB.getLogMgr();
 
         // Since only a single log file is used for the whole log manager, need to clear the file each time so
         // each unit test runs properly
-        clearFile(testDir, logMgr.getLogFile());
+        clearFile(TEST_DIR, logMgr.getLogFile());
+    }
+
+    @AfterEach
+    void cleanUp() throws IOException {
+        deleteDirectory(TEST_DIR);
+    }
+
+    private void deleteDirectory(String dirName) throws IOException {
+        Path path = Path.of(dirName);
+        if (Files.exists(path)) {
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        }
     }
 
     @Test

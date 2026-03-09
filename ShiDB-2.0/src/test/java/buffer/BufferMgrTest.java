@@ -8,12 +8,18 @@ import org.junit.jupiter.api.*;
 import server.ConfigFetcher;
 import server.ShiDB;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static server.ConfigFetcher.getConfigs;
 
 public class BufferMgrTest {
+    private final String TEST_DIR = "BufferMgr-unit-test";
+
     private ShiDB shiDB;
     private BufferMgr bufferMgr;
     private int numInitialBuffers;
@@ -26,7 +32,7 @@ public class BufferMgrTest {
         getConfigs("src/test/resources/bufferMgrTestConfig.json");
         bufferMgrUnitTestWaitTime = ConfigFetcher.getBufferMgrMaxWaitTime();
         numInitialBuffers = ConfigFetcher.getSizeOfBufferPool();
-        this.shiDB = new ShiDB("BufferMgr-unit-test", ConfigFetcher.getDBFileBlockSize(), numInitialBuffers);
+        this.shiDB = new ShiDB(TEST_DIR, ConfigFetcher.getDBFileBlockSize(), numInitialBuffers);
         bufferMgr = shiDB.getBufferMgr();
 
         BlockId block = new BlockId(testFileName, 0);
@@ -37,6 +43,22 @@ public class BufferMgrTest {
         page.setInt(position1, 345);
         fileMgr.writePageToDisk(block, page);
     }
+
+    @AfterEach
+    void cleanUp() throws IOException {
+        deleteDirectory(TEST_DIR);
+    }
+
+    private void deleteDirectory(String dirName) throws IOException {
+        Path path = Path.of(dirName);
+        if (Files.exists(path)) {
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        }
+    }
+
 
     @Test
     @DisplayName("Test the pin function")

@@ -1,14 +1,19 @@
 package file;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import server.ShiDB;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,13 +26,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 
 class FileMgrTest {
+    private final String TEST_DIR = "FileMgr-Unit-test";
+
     private ShiDB shiDB;
     private FileMgr fileMgr;
 
     @BeforeEach
     void setUp() throws IOException {
-        shiDB = new ShiDB("FileMgr-Unit-test", 600);
+        shiDB = new ShiDB(TEST_DIR, 600);
         fileMgr = shiDB.getFileMgr();
+    }
+
+    @AfterEach
+    void cleanUp() throws IOException {
+        deleteDirectory(TEST_DIR);
+    }
+
+    private void deleteDirectory(String dirName) throws IOException {
+        Path path = Path.of(dirName);
+        if (Files.exists(path)) {
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        }
     }
 
     @Test
