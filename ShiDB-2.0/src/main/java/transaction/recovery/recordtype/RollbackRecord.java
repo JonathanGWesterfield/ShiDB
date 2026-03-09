@@ -25,14 +25,22 @@ public class RollbackRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    @Override
+    public byte[] toBytes() {
+        return LogRecord.toBytes(operator, txNum, Optional.empty());
+    }
+
+    @Override
     public String toString() {
         return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
 
     // Does nothing, because a rollback record contains no undo information.
+    @Override
     public void undo(Transaction tx) {}
 
     // Does nothing, because a rollback record contains no redo information.
+    @Override
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {

@@ -4,6 +4,8 @@ import file.BlockId;
 import file.Page;
 import log.LogMgr;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import server.ConfigFetcher;
 import transaction.ShouldLog;
 import transaction.Transaction;
@@ -31,7 +33,7 @@ public class SetValueRecord<T> implements LogRecord {
 
     private T oldValue, newValue;
 
-    private int oldValueOffset, newValueOffset;
+    private int offset;
 
     public SetValueRecord(int operator, PageCodec<T> codec, Page page) {
         this.operator = operator;
@@ -44,27 +46,25 @@ public class SetValueRecord<T> implements LogRecord {
 
         switch (ConfigFetcher.getRecoveryMgrStrategy()) {
             case REDO_ONLY -> {
-                newValueOffset = page.getInt(base);
+                offset = page.getInt(base);
                 newValue = codec.read(page, base + Integer.BYTES);
             }
             case UNDO_REDO -> {
-                oldValueOffset = page.getInt(base);
+                offset = page.getInt(base);
                 oldValue = codec.read(page, base + Integer.BYTES);
                 int newOffsetPosition = base + Integer.BYTES + codec.byteSize(oldValue);
-                newValueOffset = page.getInt(newOffsetPosition);
-                newValue = codec.read(page, newOffsetPosition + Integer.BYTES);
+                newValue = codec.read(page, newOffsetPosition);
             }
             default -> { // Default is the UNDO_ONLY strategy since that's what the textbook implements
-                oldValueOffset = page.getInt(base);
+                offset = page.getInt(base);
                 oldValue = codec.read(page, base + Integer.BYTES);
-
             }
         }
     }
 
     @Override
     public String toString() {
-        return DataLogRecordHeader.recordToString(operator, txNum, block, oldValueOffset, newValueOffset, oldValue,
+        return DataLogRecordHeader.recordToString(operator, txNum, block, offset, offset, oldValue,
                 newValue);
     }
 
@@ -72,14 +72,14 @@ public class SetValueRecord<T> implements LogRecord {
     public void undo(Transaction tx) {
         tx.pin(block);
         switch (operator) {
-            case LogRecord.SET_INT -> tx.setInt(block, oldValueOffset, (Integer) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_STRING -> tx.setString(block, oldValueOffset, (String) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_BYTE -> tx.setByte(block, oldValueOffset, (Byte) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_BOOLEAN -> tx.setBoolean(block, oldValueOffset, (Boolean) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_SHORT -> tx.setShort(block, oldValueOffset, (Short) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_LONG -> tx.setLong(block, oldValueOffset, (Long) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_DOUBLE -> tx.setDouble(block, oldValueOffset, (Double) oldValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_DATETIME -> tx.setDateTime(block, oldValueOffset, (LocalDateTime) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_INT -> tx.setInt(block, offset, (Integer) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_STRING -> tx.setString(block, offset, (String) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_BYTE -> tx.setByte(block, offset, (Byte) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_BOOLEAN -> tx.setBoolean(block, offset, (Boolean) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_SHORT -> tx.setShort(block, offset, (Short) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_LONG -> tx.setLong(block, offset, (Long) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_DOUBLE -> tx.setDouble(block, offset, (Double) oldValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_DATETIME -> tx.setDateTime(block, offset, (LocalDateTime) oldValue, ShouldLog.DO_NOT_LOG);
             default -> throw new RuntimeException("Unsupported operator: " + operator);
         }
         tx.unPin(block);
@@ -89,17 +89,29 @@ public class SetValueRecord<T> implements LogRecord {
     public void redo(Transaction tx) {
         tx.pin(block);
         switch (operator) {
-            case LogRecord.SET_INT -> tx.setInt(block, newValueOffset, (Integer) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_STRING -> tx.setString(block, newValueOffset, (String) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_BYTE -> tx.setByte(block, newValueOffset, (Byte) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_BOOLEAN -> tx.setBoolean(block, newValueOffset, (Boolean) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_SHORT -> tx.setShort(block, newValueOffset, (Short) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_LONG -> tx.setLong(block, newValueOffset, (Long) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_DOUBLE -> tx.setDouble(block, newValueOffset, (Double) newValue, ShouldLog.DO_NOT_LOG);
-            case LogRecord.SET_DATETIME -> tx.setDateTime(block, newValueOffset, (LocalDateTime) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_INT -> tx.setInt(block, offset, (Integer) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_STRING -> tx.setString(block, offset, (String) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_BYTE -> tx.setByte(block, offset, (Byte) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_BOOLEAN -> tx.setBoolean(block, offset, (Boolean) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_SHORT -> tx.setShort(block, offset, (Short) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_LONG -> tx.setLong(block, offset, (Long) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_DOUBLE -> tx.setDouble(block, offset, (Double) newValue, ShouldLog.DO_NOT_LOG);
+            case LogRecord.SET_DATETIME -> tx.setDateTime(block, offset, (LocalDateTime) newValue, ShouldLog.DO_NOT_LOG);
             default -> throw new RuntimeException("Unsupported operator: " + operator);
         }
         tx.unPin(block);
+    }
+
+    public byte[] toBytes() {
+        return switch (ConfigFetcher.getRecoveryMgrStrategy()) {
+            case REDO_ONLY -> LogRecord.toBytes(operator, txNum, block, offset, codec.byteSize(newValue),
+                    new ValueWriter((p, pos) -> codec.write(p, pos, newValue), String.valueOf(newValue)));
+            case UNDO_REDO -> LogRecord.toBytes(operator, txNum, block, offset, codec.byteSize(oldValue), codec.byteSize(newValue),
+                    new ValueWriter((p, pos) -> codec.write(p, pos, oldValue), String.valueOf(oldValue)),
+                    new ValueWriter((p, pos) -> codec.write(p, pos, newValue), String.valueOf(newValue)));
+            default -> LogRecord.toBytes(operator, txNum, block, offset, codec.byteSize(oldValue),
+                    new ValueWriter((p, pos) -> codec.write(p, pos, oldValue), String.valueOf(oldValue)));
+        };
     }
 
     /* Writing to log (undo-only / redo-only). The data format for undo and redo only is the same, it just depends
@@ -110,20 +122,33 @@ public class SetValueRecord<T> implements LogRecord {
      */
     public static <T> long writeToLog(LogMgr logMgr, int operator, PageCodec<T> codec, long txNum, BlockId block,
                                       int offset, T value) {
-        return LogRecord.writeToLog(logMgr, operator, txNum, block, offset, codec.byteSize(value),
-                new ValueWriter((p, pos) -> codec.write(p, pos, value), String.valueOf(value)));
+
+        ValueWriter valueWriter = new ValueWriter((p, pos) -> codec.write(p, pos, value), String.valueOf(value));
+
+        Logger log = LoggerFactory.getLogger("RecoverMgr");
+        log.debug("Writing log record: <{}, tx: {}, block: {}, offset: {}, value: {}>",
+                LogRecord.operatorToString(operator), txNum, block, offset, valueWriter.strValue());
+
+        return logMgr.appendRecord(LogRecord.toBytes(operator, txNum, block, offset, codec.byteSize(value),
+                valueWriter));
     }
 
     /* Writing to log (undo-redo)
 
      The UNDO-REDO logs will look like this
-     <OPERATOR (int), txNum (long), filename (string), blockNum (int), oldValueOffset (int), oldValue (T), newValueOffset (int), newValue (T)>
+     <OPERATOR (int), txNum (long), filename (string), blockNum (int), offset (int), oldValue (T), newValue (T)>
      */
     public static <T> long writeToLog(LogMgr logMgr, int operator, PageCodec<T> codec, long txNum, BlockId block,
                                       int offset, T oldValue, T newValue) {
-        return LogRecord.writeToLog(logMgr, operator, txNum, block, offset,
-                codec.byteSize(oldValue), codec.byteSize(newValue),
-                new ValueWriter((p, pos) -> codec.write(p, pos, oldValue), String.valueOf(oldValue)),
-                new ValueWriter((p, pos) -> codec.write(p, pos, newValue), String.valueOf(newValue)));
+        ValueWriter oldValueWriter = new ValueWriter((p, pos) -> codec.write(p, pos, oldValue), String.valueOf(oldValue));
+        ValueWriter newValueWriter = new ValueWriter((p, pos) -> codec.write(p, pos, newValue), String.valueOf(newValue));
+
+        Logger log = LoggerFactory.getLogger("RecoverMgr");
+        log.debug("Writing log record: <{}, tx: {}, block: {}, offset: {}, oldValue: {}, newValue: {} >",
+                LogRecord.operatorToString(operator), txNum, block, offset, oldValueWriter.strValue(),
+                newValueWriter.strValue());
+
+        return logMgr.appendRecord(LogRecord.toBytes(operator, txNum, block, offset,
+                codec.byteSize(oldValue), codec.byteSize(newValue), oldValueWriter, newValueWriter));
     }
 }

@@ -204,8 +204,7 @@ public class Page {
         return Integer.BYTES + (strLen * (int)bytesPerChar);
     }
 
-    // Package method needed by the FileMgr class
-    protected ByteBuffer getContents() {
+    public ByteBuffer getContents() {
         byteBuffer.position(0);
         return byteBuffer;
     }

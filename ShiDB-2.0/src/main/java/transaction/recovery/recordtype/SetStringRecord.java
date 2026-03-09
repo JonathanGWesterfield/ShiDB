@@ -23,6 +23,11 @@ public class SetStringRecord implements LogRecord {
     }
 
     @Override
+    public byte[] toBytes() {
+        return inner.toBytes();
+    }
+
+    @Override
     public long getTxNum() {
         return inner.getTxNum();
     }

@@ -54,10 +54,10 @@ public interface LogRecord {
         }
     }
 
-    // This is for complex strategies like redo-only and undo-redo. The log format is different
-    // Actually need params for oldValueByteSize and newValueByteSize for variable sized data like Strings
-    static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int offset,
-                           int oldValueByteSize, int newValueByteSize, ValueWriter oldValueWriter, ValueWriter newValueWriter) {
+    // For undo-redo logs
+    public static byte[] toBytes(int operator, long txNum, BlockId block, int offset,
+                          int oldValueByteSize, int newValueByteSize, ValueWriter oldValueWriter,
+                          ValueWriter newValueWriter) {
         int txPosition = Integer.BYTES;
         int filenamePosition = txPosition + Long.BYTES;
         int blockNumPosition = filenamePosition + Page.calcMaxByteLength(block.filename());
@@ -87,12 +87,12 @@ public interface LogRecord {
 
         newValueWriter.write(page, newValuePosition);
 
-        return logMgr.appendRecord(record);
+        return record;
     }
 
-    // This is a simpler method for the simple needs of the undo-only or redo-only strategy
-    static long writeToLog(LogMgr logMgr, int operator, long txNum, BlockId block, int offset, int valueByteSize,
-                           ValueWriter valueWriter) {
+    // For Undo-only and redo-only logs
+    public static byte[] toBytes(int operator, long txNum, BlockId block, int offset, int valueByteSize,
+                          ValueWriter valueWriter) {
         int txPosition = Integer.BYTES;
         int filenamePosition = txPosition + Long.BYTES;
         int blockNumPosition = filenamePosition + Page.calcMaxByteLength(block.filename());
@@ -116,11 +116,11 @@ public interface LogRecord {
 
         valueWriter.write(page, valuePosition);
 
-        return logMgr.appendRecord(record);
+        return record;
     }
 
-    // log function for simple records like commit, rollback, start, etc.
-    static long writeToLog(LogMgr logMgr, int operator, long txNum, Optional<ArrayList<Long>> runningTxNums) {
+    // For simple logs like commit, rollback, etc
+    public static byte[] toBytes(int operator, long txNum, Optional<ArrayList<Long>> runningTxNums) {
         int txPosition = Integer.BYTES;
 
         int recordLength = txPosition + Long.BYTES;
@@ -131,19 +131,13 @@ public interface LogRecord {
         page.setInt(0, operator);
         page.setLong(txPosition, txNum);
 
-        Logger log = LoggerFactory.getLogger("RecoverMgr");
-
         if (operator == LogRecord.NQ_CHECKPOINT) {
-            log.debug("Writing log record: <{}, tx: {}, runningTxNumListLength: {}, runningTxNums: {}>",
-                    LogRecord.operatorToString(operator), txNum, runningTxNums.get().size(), runningTxNums);
-
-            writeRunningTxNumsToPage(page, runningTxNums.get());
-        }
-        else {
-            log.debug("Writing log record: <{}, tx: {}>", LogRecord.operatorToString(operator), txNum);
+            ArrayList<Long> runningTxs = runningTxNums.orElse(new ArrayList<>());
+            writeRunningTxNumsToPage(page, runningTxs);
         }
 
-        return logMgr.appendRecord(record);
+
+        return page.getContents().array();
     }
 
     private static void writeRunningTxNumsToPage(Page page, ArrayList<Long> runningTxNums) {
@@ -158,6 +152,20 @@ public interface LogRecord {
         }
     }
 
+    // log function for simple records like commit, rollback, start, etc.
+    static long writeToLog(LogMgr logMgr, int operator, long txNum, Optional<ArrayList<Long>> runningTxNums) {
+        byte[] record = toBytes(operator, txNum, runningTxNums);
+
+        Logger log = LoggerFactory.getLogger("RecoverMgr");
+        if (operator == LogRecord.NQ_CHECKPOINT)
+            log.debug("Writing log record: <{}, tx: {}, runningTxNumListLength: {}, runningTxNums: {}>",
+                    LogRecord.operatorToString(operator), txNum, runningTxNums.get().size(), runningTxNums);
+        else
+            log.debug("Writing log record: <{}, tx: {}>", LogRecord.operatorToString(operator), txNum);
+
+        return logMgr.appendRecord(record);
+    }
+
     int getOperator();
 
     long getTxNum();
@@ -169,4 +177,6 @@ public interface LogRecord {
     String toString();
 
     boolean isDataRecord();
+
+    byte[] toBytes();
 }

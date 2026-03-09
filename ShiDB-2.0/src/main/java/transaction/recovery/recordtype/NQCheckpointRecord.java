@@ -42,14 +42,22 @@ public class NQCheckpointRecord implements LogRecord {
         }
     }
 
+    @Override
+    public byte[] toBytes() {
+        return LogRecord.toBytes(operator, txNum, Optional.of(runningTxNums));
+    }
+
+    @Override
     public String toString() {
         return "<" + LogRecord.operatorToString(operator) + ", tx: " + txNum + ", runningTxNums: " + runningTxNums.toString() + ">";
     }
 
     // Does nothing, because a checkpoint record contains no undo information.
+    @Override
     public void undo(Transaction tx) {}
 
     // Does nothing, because a checkpoint record contains no redo information.
+    @Override
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum, ArrayList<Long> runningTxNums) {

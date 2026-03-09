@@ -24,14 +24,22 @@ public class CheckpointRecord implements LogRecord {
         txNum = header.getTxNum();
     }
 
+    @Override
+    public byte[] toBytes() {
+        return LogRecord.toBytes(operator, txNum, Optional.empty());
+    }
+
+    @Override
     public String toString() {
         return SimpleLogRecordHeader.recordToString(operator, txNum);
     }
 
     // Does nothing, because a checkpoint record contains no undo information.
+    @Override
     public void undo(Transaction tx) {}
 
     // Does nothing, because a checkpoint record contains no redo information.
+    @Override
     public void redo(Transaction tx) {}
 
     public static long writeToLog(LogMgr logMgr, long txNum) {
