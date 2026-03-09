@@ -106,4 +106,29 @@ class LogMgrTest {
 
         assertEquals(numExpectedRecords, records.size());
     }
+
+    @Test
+    @DisplayName("Test log iterator returns correct record contents")
+    public void testLogIteratorContents() throws IOException {
+        // Write 3 known records
+        byte[] record1 = createLogRecord("alpha", 1);
+        byte[] record2 = createLogRecord("beta", 2);
+        byte[] record3 = createLogRecord("gamma", 3);
+
+        logMgr.appendRecord(record1);
+        logMgr.appendRecord(record2);
+        logMgr.appendRecord(record3);
+
+        // Iterator returns newest to oldest
+        Iterator<byte[]> iter = logMgr.iterator();
+
+        byte[] returned3 = iter.next();
+        byte[] returned2 = iter.next();
+        byte[] returned1 = iter.next();
+
+        assertArrayEquals(record3, returned3, "Third record should be returned first (newest)");
+        assertArrayEquals(record2, returned2, "Second record should be returned second");
+        assertArrayEquals(record1, returned1, "First record should be returned last (oldest)");
+        assertFalse(iter.hasNext(), "Iterator should be exhausted after 3 records");
+    }
 }

@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -167,6 +168,100 @@ class FileMgrTest {
         assertEquals(page1.getLong(position2), page2.getLong(position2));
         assertEquals(page1.getDateTime(position3), page2.getDateTime(position3));
         assertEquals(page1.getDouble(position4), page2.getDouble(position4));
+    }
+
+    /**
+     * Directly tests the getBytes/setBytes round trip since this is where the absolute vs relative
+     * ByteBuffer read bug manifests. The bug causes getBytes() to return data shifted 4 bytes back,
+     * overlapping with the length prefix.
+     */
+    @Test
+    @DisplayName("getBytes returns exact bytes that were written by setBytes")
+    public void testGetBytesRoundTrip() {
+        Page page = new Page(fileMgr.getBlocksize());
+        byte[] original = new byte[]{10, 20, 30, 40, 50};
+        int offset = 0;
+
+        page.setBytes(offset, original);
+        byte[] retrieved = page.getBytes(offset);
+
+        assertArrayEquals(original, retrieved, "getBytes should return the exact bytes written by setBytes");
+    }
+
+    /**
+     * Verifies getBytes works correctly at a non-zero offset, ruling out any accidental
+     * offset-zero special case that could mask the bug.
+     */
+    @Test
+    @DisplayName("getBytes returns correct bytes at non-zero offset")
+    public void testGetBytesAtOffset() {
+        Page page = new Page(fileMgr.getBlocksize());
+        byte[] original = new byte[]{1, 2, 3, 4, 5, 6, 7, 8};
+        int offset = 20;
+
+        page.setBytes(offset, original);
+        byte[] retrieved = page.getBytes(offset);
+
+        assertArrayEquals(original, retrieved, "getBytes should return correct bytes at non-zero offset");
+    }
+
+    /**
+     * Verifies getString round trip since getString delegates to getBytes.
+     * A bug in getBytes would corrupt string reads.
+     */
+    @Test
+    @DisplayName("getString returns exact string written by setString")
+    public void testGetStringRoundTrip() {
+        Page page = new Page(fileMgr.getBlocksize());
+        String original = "ShiDB is a pun";
+        int offset = 0;
+
+        page.setString(offset, original);
+        String retrieved = page.getString(offset);
+
+        assertEquals(original, retrieved, "getString should return the exact string written by setString");
+    }
+
+    /**
+     * Verifies two values written adjacent to each other don't bleed into each other.
+     * This catches off-by-one errors in position advancement after reads.
+     */
+    @Test
+    @DisplayName("Adjacent byte arrays are read back independently without corruption")
+    public void testAdjacentBytesRoundTrip() {
+        Page page = new Page(fileMgr.getBlocksize());
+        byte[] first = new byte[]{1, 2, 3};
+        byte[] second = new byte[]{4, 5, 6, 7, 8};
+
+        int firstOffset = 0;
+        int secondOffset = Integer.BYTES + first.length; // size of [length prefix + data]
+
+        page.setBytes(firstOffset, first);
+        page.setBytes(secondOffset, second);
+
+        assertArrayEquals(first, page.getBytes(firstOffset), "First byte array should be read back correctly");
+        assertArrayEquals(second, page.getBytes(secondOffset), "Second byte array should be read back correctly without bleeding from first");
+    }
+
+    /**
+     * Verifies that writing to disk and reading back preserves byte array contents.
+     * Catches any serialization issues on top of the in-memory correctness.
+     */
+    @Test
+    @DisplayName("getBytes survives a write to disk and read back")
+    public void testGetBytesSurvivesDiskRoundTrip() {
+        BlockId blk = new BlockId("testfile", 99);
+        Page writePage = new Page(fileMgr.getBlocksize());
+        byte[] original = new byte[]{9, 8, 7, 6, 5, 4, 3, 2, 1};
+        int offset = 0;
+
+        writePage.setBytes(offset, original);
+        fileMgr.writePageToDisk(blk, writePage);
+
+        Page readPage = new Page(fileMgr.getBlocksize());
+        fileMgr.readFromDiskToPage(blk, readPage);
+
+        assertArrayEquals(original, readPage.getBytes(offset), "getBytes should return correct data after disk round trip");
     }
     
 }

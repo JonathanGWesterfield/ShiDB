@@ -41,8 +41,13 @@ public class Page {
         if (offset >= 0 && offset < byteBuffer.limit())
             return;
 
-        throw new IllegalArgumentException(
+        if (offset < 0)
+            throw new IllegalArgumentException(
                 "Provided offset: " + offset + " - Cannot have a negative offset to the byte buffer!");
+
+        if (offset >= byteBuffer.limit())
+            throw new IllegalArgumentException("Provided offset: " + offset +
+                    " is greater or equal to the bytebuffer limit: " + byteBuffer.limit());
     }
 
     public short getShort(int offset) {
@@ -104,7 +109,7 @@ public class Page {
         validateOffset(offset);
 
         byteBuffer.position(offset);
-        int length = byteBuffer.getInt(offset);
+        int length = byteBuffer.getInt();
 
         byte[] byteArr = new byte[length];
         byteBuffer.get(byteArr);
