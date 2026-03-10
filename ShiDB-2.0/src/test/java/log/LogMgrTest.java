@@ -150,4 +150,85 @@ class LogMgrTest {
         assertArrayEquals(record1, returned1, "First record should be returned last (oldest)");
         assertFalse(iter.hasNext(), "Iterator should be exhausted after 3 records");
     }
+
+    /**
+     * Verifies that the LogIterator correctly crosses block boundaries.
+     *
+     * Block size: 600 bytes (based on the setup function())
+     * Record layout: [length prefix (4)] + [string (4 + 7)] + [int (4)] = 19 bytes per record
+     * Usable space per block: 600 - 4 (boundary pointer) = 596 bytes
+     * Records per block: floor(596 / 19) = 31
+     *
+     * Writing 40 records forces a second block (31 in block 0, 9 in block 1).
+     * The iterator must cross from block 1 back to block 0 and return all records
+     * in correct newest-to-oldest order with correct contents.
+     */
+    @Test
+    @DisplayName("Log iterator correctly crosses block boundaries")
+    public void testLogIteratorCrossesBlockBoundary() {
+        int numRecords = 40; // deliberately more than 31 to force a second block
+        ArrayList<byte[]> writtenRecords = new ArrayList<>();
+
+        for (int i = 1; i <= numRecords; i++) {
+            byte[] record = createLogRecord("record" + i, i + 100);
+            writtenRecords.add(record);
+            logMgr.appendRecord(record);
+        }
+
+        // Collect all records back via the iterator (newest to oldest)
+        ArrayList<byte[]> readRecords = new ArrayList<>();
+        Iterator<byte[]> iter = logMgr.iterator();
+        while (iter.hasNext())
+            readRecords.add(iter.next());
+
+        // Verify count — no records lost crossing the boundary
+        assertEquals(numRecords, readRecords.size(),
+                "All records should be returned across block boundaries");
+
+        // Verify order and contents — iterator returns newest to oldest
+        // so readRecords[0] == writtenRecords[39], readRecords[39] == writtenRecords[0]
+        for (int i = 0; i < numRecords; i++) {
+            int writtenIndex = numRecords - 1 - i;
+            assertArrayEquals(writtenRecords.get(writtenIndex), readRecords.get(i),
+                    String.format("Record at iterator position %d should match written record %d", i, writtenIndex));
+        }
+
+        // Spot-check the boundary records explicitly —
+        // record 31 is the last record written to block 0 (oldest in block 0)
+        // record 32 is the first record written to block 1 (newest in block 1, read first)
+        // In read order (newest-to-oldest): record40, record39, ... record32 are in block 1,
+        // record31, record30, ... record1 are in block 0
+        byte[] expectedFirstInBlock1 = writtenRecords.get(numRecords - 1); // record40
+        byte[] expectedLastInBlock1  = writtenRecords.get(30);             // record31 (0-indexed: index 30 = record31... wait, this is the boundary)
+
+        // The first 9 read back (indices 0-8) should be from block 1 (records 40 down to 32)
+        // The next 31 read back (indices 9-39) should be from block 0 (records 31 down to 1)
+        assertArrayEquals(writtenRecords.get(39), readRecords.get(0),
+                "First record read should be record40 (newest, in block 1)");
+        assertArrayEquals(writtenRecords.get(31), readRecords.get(8),
+                "9th record read should be record32 (oldest in block 1, just before boundary)");
+        assertArrayEquals(writtenRecords.get(30), readRecords.get(9),
+                "10th record read should be record31 (newest in block 0, just after boundary crossing)");
+        assertArrayEquals(writtenRecords.get(0), readRecords.get(39),
+                "Last record read should be record1 (oldest, in block 0)");
+    }
+
+    @Test
+    @DisplayName("Log iterator hasNext returns false after crossing boundary and exhausting all records")
+    public void testLogIteratorExhaustsAfterBoundaryCrossing() {
+        int numRecords = 40;
+
+        for (int i = 1; i <= numRecords; i++)
+            logMgr.appendRecord(createLogRecord("record" + i, i));
+
+        Iterator<byte[]> iter = logMgr.iterator();
+        int count = 0;
+        while (iter.hasNext()) {
+            iter.next();
+            count++;
+        }
+
+        assertEquals(numRecords, count, "Iterator should return exactly numRecords before exhausting");
+        assertFalse(iter.hasNext(), "Iterator should report hasNext=false after all records are consumed");
+    }
 }
