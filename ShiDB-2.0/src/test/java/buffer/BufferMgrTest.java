@@ -364,4 +364,24 @@ public class BufferMgrTest {
         buffer2.setModified(1, 0);
         bufferMgr.unpinBuffer(buffer2);
     }
+
+    @Test
+    @DisplayName("Blocks from different files with the same block number are cached independently")
+    public void testBlocksFromDifferentFilesWithSameBlockNumAreDistinct() {
+        // These two blocks have the same blockNum but different filenames.
+        // If the LUT keys on blockNum instead of BlockId, pinning file2/0
+        // would return the buffer for file1/0 — wrong buffer, wrong data.
+        BlockId block1 = new BlockId("file1", 0);
+        BlockId block2 = new BlockId("file2", 0);
+
+        Buffer buffer1 = bufferMgr.pinBuffer(block1);
+        Buffer buffer2 = bufferMgr.pinBuffer(block2);
+
+        assertNotSame(buffer1, buffer2,
+                "Two blocks from different files with the same block number must map to different buffers");
+        assertEquals(block1, buffer1.getBlock(),
+                "buffer1 should be assigned to file1/block0");
+        assertEquals(block2, buffer2.getBlock(),
+                "buffer2 should be assigned to file2/block0");
+    }
 }

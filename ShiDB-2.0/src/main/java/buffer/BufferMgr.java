@@ -73,7 +73,8 @@ public abstract class BufferMgr {
             }
 
             if (attemptToPin.hasFailed())
-                throw new BufferAbortException("Waited too long for a buffer to become available and timed out!");
+                throw new BufferAbortException("Timed out waiting for a buffer to be pinned after " +
+                        MAX_TIME_WAIT_FOR_PIN_MILLISECONDS + " milliseconds");
 
             return attemptToPin.value();
         } catch (InterruptedException e) {
