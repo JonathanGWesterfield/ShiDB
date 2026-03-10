@@ -4,6 +4,7 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 import transaction.Transaction;
 import transaction.recovery.LogRecord;
 import transaction.recovery.SimpleLogRecordHeader;
@@ -40,6 +41,12 @@ public class NQCheckpointRecord implements LogRecord {
             runningTxNums.add(page.getLong(txNumListOffset));
             txNumListOffset += Long.BYTES;
         }
+    }
+
+    @TestOnly
+    public NQCheckpointRecord(long txNum, ArrayList<Long> runningTxNums) {
+        this.txNum = txNum;
+        this.runningTxNums = runningTxNums;
     }
 
     @Override

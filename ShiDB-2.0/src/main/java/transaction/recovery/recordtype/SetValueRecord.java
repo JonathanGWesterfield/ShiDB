@@ -4,6 +4,8 @@ import file.BlockId;
 import file.Page;
 import log.LogMgr;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.ConfigFetcher;
@@ -20,6 +22,7 @@ import java.time.LocalDateTime;
  */
 
 @Getter
+@Slf4j(topic = "RecoveryMgr")
 public class SetValueRecord<T> implements LogRecord {
     private final int operator;
 
@@ -35,6 +38,18 @@ public class SetValueRecord<T> implements LogRecord {
 
     private int offset;
 
+    // Test/serialization constructor
+    @TestOnly
+    public SetValueRecord(int operator, PageCodec<T> codec, long txNum, BlockId block, int offset, T oldValue, T newValue) {
+        this.operator = operator;
+        this.codec = codec;
+        this.txNum = txNum;
+        this.block = block;
+        this.offset = offset;
+        this.oldValue = oldValue;
+        this.newValue = newValue;
+    }
+
     public SetValueRecord(int operator, PageCodec<T> codec, Page page) {
         this.operator = operator;
         this.codec = codec;
@@ -44,6 +59,7 @@ public class SetValueRecord<T> implements LogRecord {
         this.block = header.getBlock();
         int base = header.getValueAreaStart();
 
+        log.debug("Loading up record according to the {} strategy", ConfigFetcher.getRecoveryMgrStrategy().toString());
         switch (ConfigFetcher.getRecoveryMgrStrategy()) {
             case REDO_ONLY -> {
                 offset = page.getInt(base);
@@ -60,6 +76,8 @@ public class SetValueRecord<T> implements LogRecord {
                 oldValue = codec.read(page, base + Integer.BYTES);
             }
         }
+
+        log.debug("Loaded up log record: {}", this.toString());
     }
 
     @Override

@@ -4,6 +4,7 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 import transaction.Transaction;
 import transaction.recovery.LogRecord;
 import transaction.recovery.SimpleLogRecordHeader;
@@ -22,6 +23,11 @@ public class CheckpointRecord implements LogRecord {
     public CheckpointRecord(Page page) {
         SimpleLogRecordHeader header = new SimpleLogRecordHeader(page);
         txNum = header.getTxNum();
+    }
+
+    @TestOnly
+    public CheckpointRecord(long txNum) {
+        this.txNum = txNum;
     }
 
     @Override

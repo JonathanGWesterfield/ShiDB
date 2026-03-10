@@ -5,6 +5,7 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 import transaction.Transaction;
 import transaction.recovery.LogRecord;
 
@@ -22,6 +23,16 @@ public class SetDateTimeRecord implements LogRecord {
 
     public SetDateTimeRecord(Page page) {
         this.inner = new SetValueRecord<>(operator, PageCodecs.DATE_TIME, page);
+    }
+
+    @TestOnly
+    public SetDateTimeRecord(Long txNum, BlockId block, Integer offset, LocalDateTime oldValue, LocalDateTime newValue) {
+        this.inner = new SetValueRecord<>(operator, PageCodecs.DATE_TIME, txNum, block, offset, oldValue, newValue);
+    }
+
+    @TestOnly
+    public SetValueRecord<LocalDateTime> getInner() {
+        return inner;
     }
 
     @Override

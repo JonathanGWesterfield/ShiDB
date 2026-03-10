@@ -5,6 +5,7 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 import transaction.Transaction;
 import transaction.recovery.LogRecord;
 
@@ -20,6 +21,16 @@ public class SetStringRecord implements LogRecord {
 
     public SetStringRecord(Page page) {
         this.inner = new SetValueRecord<>(operator, PageCodecs.STRING, page);
+    }
+
+    @TestOnly
+    public SetStringRecord(Long txNum, BlockId block, Integer offset, String oldValue, String newValue) {
+        this.inner = new SetValueRecord<>(operator, PageCodecs.STRING, txNum, block, offset, oldValue, newValue);
+    }
+
+    @TestOnly
+    public SetValueRecord<String> getInner() {
+        return inner;
     }
 
     @Override

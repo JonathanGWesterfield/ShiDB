@@ -5,6 +5,7 @@ import file.Page;
 import log.LogMgr;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 import transaction.Transaction;
 import transaction.recovery.LogRecord;
 
@@ -20,6 +21,16 @@ public class SetBooleanRecord implements LogRecord {
 
     public SetBooleanRecord(Page page) {
         this.inner = new SetValueRecord<>(operator, PageCodecs.BOOLEAN, page);
+    }
+
+    @TestOnly
+    public SetBooleanRecord(Long txNum, BlockId block, Integer offset, Boolean oldValue, Boolean newValue) {
+        this.inner = new SetValueRecord<>(operator, PageCodecs.BOOLEAN, txNum, block, offset, oldValue, newValue);
+    }
+
+    @TestOnly
+    public SetValueRecord<Boolean> getInner() {
+        return inner;
     }
 
     @Override
