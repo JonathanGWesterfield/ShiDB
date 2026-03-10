@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 /**
@@ -79,7 +78,9 @@ public class Page {
      */
     public LocalDateTime getDateTime(int offset) {
         long epoch = getLong(offset);
-        return LocalDateTime.ofInstant(Instant.ofEpochSecond(epoch), ZoneId.systemDefault());
+        return LocalDateTime.ofInstant(Instant.ofEpochSecond(epoch), ZoneOffset.UTC);
+
+
     }
 
     public int getInt(int offset) {

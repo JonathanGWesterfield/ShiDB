@@ -4,7 +4,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
 import server.ShiDB;
 
 import java.io.File;
@@ -13,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -285,5 +285,29 @@ class FileMgrTest {
 
         assertArrayEquals(original, readPage.getBytes(offset), "getBytes should return correct data after disk round trip");
     }
-    
+
+    @Test
+    @DisplayName("setDateTime and getDateTime round-trip correctly — catches timezone conversion bug")
+    public void testDateTimeRoundTrip() {
+        BlockId blk = new BlockId("testfile", 2);
+        Page writePage = new Page(fileMgr.getBlocksize());
+
+        // Truncate to seconds since epoch storage loses sub-second precision
+        LocalDateTime original = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        int offset = 0;
+
+        writePage.setDateTime(offset, original);
+
+        // Test in-memory round-trip
+        assertEquals(original, writePage.getDateTime(offset),
+                "getDateTime should return the exact value set by setDateTime — catches UTC vs system timezone mismatch");
+
+        // Test disk round-trip
+        fileMgr.writePageToDisk(blk, writePage);
+        Page readPage = new Page(fileMgr.getBlocksize());
+        fileMgr.readFromDiskToPage(blk, readPage);
+
+        assertEquals(original, readPage.getDateTime(offset),
+                "getDateTime should survive a disk round-trip without timezone drift");
+    }
 }
