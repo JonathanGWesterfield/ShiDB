@@ -206,6 +206,7 @@ public class Transaction {
 
         Page page = buffer.getContents();
         pageWriter.accept(page, offset);
+
         buffer.setModified(txNum, lsn);
     }
 }

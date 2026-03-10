@@ -34,6 +34,7 @@ public interface LogRecord {
             case LogRecord.NQ_CHECKPOINT -> "NQ_CHECKPOINT";
             case LogRecord.START -> "START";
             case LogRecord.COMMIT -> "COMMIT";
+            case LogRecord.ROLLBACK -> "ROLLBACK";
             case LogRecord.SET_INT -> "SET_INT";
             case LogRecord.SET_STRING -> "SET_STRING";
             case LogRecord.SET_BYTE -> "SET_BYTE";
@@ -77,11 +78,6 @@ public interface LogRecord {
         page.setString(filenamePosition, block.filename());
         page.setInt(blockNumPosition, block.blockNum());
 
-        Logger log = LoggerFactory.getLogger("RecoverMgr");
-        log.debug("Writing log record: <{}, tx: {}, block: {}, offset: {}, oldValue: {}, newValue: {} >",
-                LogRecord.operatorToString(operator), txNum, block, offset, oldValueWriter.strValue(),
-                newValueWriter.strValue());
-
         page.setInt(oldValueOffsetPosition, offset);
         oldValueWriter.write(page, oldValuePosition);
 
@@ -123,7 +119,15 @@ public interface LogRecord {
     public static byte[] toBytes(int operator, long txNum, Optional<ArrayList<Long>> runningTxNums) {
         int txPosition = Integer.BYTES;
 
+        ArrayList<Long> runningTxs = runningTxNums.orElseGet(ArrayList::new);
+
         int recordLength = txPosition + Long.BYTES;
+        if (operator == LogRecord.NQ_CHECKPOINT) {
+            recordLength = Integer.BYTES  // operator
+                    + Long.BYTES     // txNum
+                    + Integer.BYTES  // runningTxNums list size
+                    + (runningTxs.size() * Long.BYTES); // each tx num
+        }
 
         byte[] record = new byte[recordLength];
         Page page = new Page(record);
@@ -131,10 +135,9 @@ public interface LogRecord {
         page.setInt(0, operator);
         page.setLong(txPosition, txNum);
 
-        if (operator == LogRecord.NQ_CHECKPOINT) {
-            ArrayList<Long> runningTxs = runningTxNums.orElse(new ArrayList<>());
+        if (operator == LogRecord.NQ_CHECKPOINT)
             writeRunningTxNumsToPage(page, runningTxs);
-        }
+
 
 
         return page.getContents().array();

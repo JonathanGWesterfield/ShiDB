@@ -3,6 +3,7 @@ package transaction.recovery;
 import file.BlockId;
 import file.Page;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import server.ConfigFetcher;
 
 /**
@@ -11,6 +12,7 @@ import server.ConfigFetcher;
  *
  *    <OPERATOR (int), txNum (long), filename (string), blockNum (int), oldValueOffset (int), oldValue (depends on the record type), newValueOffset (int), newValue (depends on the record type)>
  */
+@Slf4j(topic = "RecoveryMgr")
 public class DataLogRecordHeader {
     @Getter
     private long txNum;
@@ -26,6 +28,7 @@ public class DataLogRecordHeader {
 
     public DataLogRecordHeader(Page page) {
         this.operator = page.getInt(0);
+        log.debug("DataLogRecordHeader operator: {} -> {}", operator, LogRecord.operatorToString(operator));
 
         int txPosition = Integer.BYTES;
         this.txNum = page.getLong(txPosition);
@@ -38,6 +41,9 @@ public class DataLogRecordHeader {
         this.block = new BlockId(filename, blockNum);
 
         this.valueAreaStart = blockPosition + Integer.BYTES;
+
+        log.debug("operator pos: 0, txPos: {}, filenamePos: {}, filename: '{}', blockPos: {}, valueAreaStart: {}",
+                txPosition, filenamePosition, filename, blockPosition, valueAreaStart);
     }
 
     public static String recordToString(int operator, long txNum, BlockId block, int oldValueOffset, int newValueOffset,

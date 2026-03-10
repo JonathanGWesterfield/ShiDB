@@ -1,16 +1,20 @@
 package transaction.recovery;
 
 import file.Page;
+import lombok.extern.slf4j.Slf4j;
 import transaction.recovery.recordtype.*;
 
+@Slf4j(topic = "RecoveryMgr")
 public class LogRecordFactory {
 
     // I really hate the circular dependency of this factory method being in the LogRecord interface like the
     // book describes. This factory class scratches that itch.
-    static LogRecord convertToLogRecord(byte[] bytes) {
+    public static LogRecord convertToLogRecord(byte[] bytes) {
         Page page = new Page(bytes);
 
         int logRecordType = page.getInt(0);
+
+        log.debug("Parsing a {} record of {} bytes", LogRecord.operatorToString(logRecordType), page.getContents().limit());
         return switch (logRecordType) {
             case LogRecord.CHECKPOINT -> new CheckpointRecord(page);
             case LogRecord.NQ_CHECKPOINT -> new NQCheckpointRecord(page);

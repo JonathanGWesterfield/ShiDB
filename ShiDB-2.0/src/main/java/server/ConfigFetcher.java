@@ -3,6 +3,7 @@ package server;
 import buffer.BufferSelectionStrategy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
+import org.jetbrains.annotations.TestOnly;
 import transaction.recovery.RecoveryMgrStrategy;
 
 import java.io.File;
@@ -34,6 +35,13 @@ public class ConfigFetcher {
         }
     }
 
+    // Some unit test need to reload configs... so here we are...
+    @TestOnly
+    public static synchronized void reloadConfig(String newConfigFilePath) {
+        fetcherInstance = null;
+        getConfigs(newConfigFilePath);
+    }
+
     public static synchronized ConfigFetcher getConfigs() {
         if (fetcherInstance == null)
             fetcherInstance = new ConfigFetcher();
@@ -42,7 +50,6 @@ public class ConfigFetcher {
     }
 
     // Extra constructor to help load different config files depending on the needs of the unit test
-    // This only let's me change the config on startup. I don't want to change configs on the fly
     public static synchronized ConfigFetcher getConfigs(String newConfigFilePath) {
         configFilePath = newConfigFilePath;
 
@@ -108,16 +115,20 @@ public class ConfigFetcher {
     // Ensure that this value is larger than the Buffer Mgr max wait time. If the buffer mgr is deadlocking on pinning
     // a buffer, it can cause the ConcurrencyMgr on top to also timeout. If the Concurrency Mgr times out first, it
     // will mask the real cause of the timeout
-    public static long getConcurrencyMgrMaxWaitTime() {
-        if (getConfigs().configMap.containsKey("concurrency_mgr_acquire_lock_max_wait_time_milliseconds"))
-            return Long.parseLong(getConfigs().configMap.get("concurrency_mgr_acquire_lock_max_wait_time_milliseconds").toString());
-        return 15000L; // return a default wait time of 15 seconds
+    public static long getConcurrencyMgrMaxWaitTimeNano() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_acquire_lock_max_wait_time_milliseconds")) {
+            long millis = Long.parseLong(getConfigs().configMap.get("concurrency_mgr_acquire_lock_max_wait_time_milliseconds").toString());
+            return millis * 1_000_000L;
+        }
+        return 15000L * 1_000_000L; // return a default wait time of 15 seconds
     }
 
-    public static long getConcurrencyMgrPollStepTime() {
-        if (getConfigs().configMap.containsKey("concurrency_mgr_acquire_lock_poll_step_milliseconds"))
-            return Long.parseLong(getConfigs().configMap.get("concurrency_mgr_acquire_lock_poll_step_milliseconds").toString());
-        return 100L; // return a default wait time of 100 milliseconds
+    public static long getConcurrencyMgrPollStepTimeNano() {
+        if (getConfigs().configMap.containsKey("concurrency_mgr_acquire_lock_poll_step_milliseconds")) {
+            long millis = Long.parseLong(getConfigs().configMap.get("concurrency_mgr_acquire_lock_poll_step_milliseconds").toString());
+            return millis * 1_000_000L;
+        }
+        return 100L * 1_000_000L; // return a default wait time of 100 milliseconds
     }
 
     public static int getNumTransactionsPerCheckpoint() {

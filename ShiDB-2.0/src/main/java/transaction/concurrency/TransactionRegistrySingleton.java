@@ -1,6 +1,8 @@
 package transaction.concurrency;
 
 import log.LogMgr;
+import lombok.Getter;
+import org.jetbrains.annotations.TestOnly;
 import server.ConfigFetcher;
 
 import java.util.Map;
@@ -20,6 +22,7 @@ public class TransactionRegistrySingleton {
     private static volatile TransactionRegistrySingleton instance;
     private static final Object mutex = new Object();
 
+    @Getter
     private LogMgr logMgr;
 
     private TransactionRegistrySingleton() {
@@ -37,6 +40,11 @@ public class TransactionRegistrySingleton {
     public void setLogMgr(LogMgr logMgr) {
         this.logMgr = logMgr;
         checkpointStrategy.setLogMgr(logMgr);
+    }
+
+    @TestOnly
+    public static void reinit() {
+        instance = null;
     }
 
     // Found this specific flavor of singleton pattern on this website:

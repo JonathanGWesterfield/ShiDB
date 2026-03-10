@@ -2,17 +2,21 @@ package transaction.recovery;
 
 import file.Page;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j(topic = "RecoveryMgr")
 public class SimpleLogRecordHeader {
 
     @Getter
     private long txNum;
 
     public SimpleLogRecordHeader(Page page) {
-        // The operator is before the txNum and is and Integer, so we start with the transaction num
+        int operator = page.getInt(0);
 
         int txPosition = Integer.BYTES;
         txNum = page.getLong(txPosition);
+
+        log.debug("Loading up log record: {}", recordToString(operator, txNum));
     }
 
     public static String recordToString(int operator, long txNum) {

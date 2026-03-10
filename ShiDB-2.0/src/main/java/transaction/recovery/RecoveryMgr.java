@@ -17,6 +17,8 @@ import java.util.*;
  * order to get pages to clients. It will flush a page to disk to pin a new block to it's buffer. This means that we
  * can't implement redo-only logging since we need to make sure the that COMMIT log record is written BEFORE the buffer
  * changes get flushed to disk for that strategy to work.
+ *
+ * However, we can implement the undo-redo strategy because we have already implemented write ahead logging (WAL)
  */
 
 @Slf4j(topic = "RecoveryMgr")
@@ -52,12 +54,19 @@ public class RecoveryMgr {
         logMgr.flush(lsn);
     }
 
-    // TODO: Need to implement NQ checkpointing after implementing the ConcurrencyMgr and Transaction class
-    // I've already taken care of handling the NQ checkpoint in doRecover(). But I need the runningTx list
     public void recover() {
         doRecover();
         bufferMgr.flushAll(txNum);
-        long lsn = CheckpointRecord.writeToLog(logMgr, txNum);
+        manualCheckpoint();
+    }
+
+    private void manualCheckpoint() {
+        long lsn = -1;
+        if (ConfigFetcher.useNQCheckpointing())
+            lsn = NQCheckpointRecord.writeToLog(logMgr, txNum, new ArrayList<>());
+        else
+            lsn = CheckpointRecord.writeToLog(logMgr, txNum);
+
         logMgr.flush(lsn);
     }
 
@@ -83,7 +92,6 @@ public class RecoveryMgr {
         }
     }
 
-    // CURRENT IMPLEMENTATION DOESN'T ACCOUNT FOR NQ CHECKPOINTING
     private void doRecoverUndoRedo() {
         Deque<LogRecord> records = getLogsUntilCheckpoint();
         Set<Long> incompleteTxs = redoTxs(records);
@@ -113,39 +121,65 @@ public class RecoveryMgr {
 
     private Set<Long> redoTxs(Deque<LogRecord> records) {
         Set<Long> incompleteTxs = new HashSet<>();
+        Set<Long> committedTxs = new HashSet<>();
 
-        // Going in the forwards order of the stack, we get the forwards direction of the log stream
+        // Going in the forwards order of the stack, we get the forwards direction of the log stream (oldest to newest)
         for (LogRecord record : records) {
-            if (record.getOperator() == LogRecord.COMMIT || record.getOperator() == LogRecord.ROLLBACK) {
+            if (record.getOperator() == LogRecord.COMMIT) {
+                committedTxs.add(record.getTxNum());
                 incompleteTxs.remove(record.getTxNum());
-                continue;
             }
-
-            if (record.getOperator() == LogRecord.START) {
+            else if (record.getOperator() == LogRecord.ROLLBACK) {
+                incompleteTxs.remove(record.getTxNum());
+            }
+            else if (record.getOperator() == LogRecord.START) {
                 incompleteTxs.add(record.getTxNum());
-                continue;
             }
+        }
 
-            if (record.isDataRecord())
+        // Need a second pass to redo only transactions that never completed
+        for (LogRecord record : records) {
+            if (record.isDataRecord() && committedTxs.contains(record.getTxNum()))
                 record.redo(tx);
         }
 
+        log.debug("NQ Checkpoint recovery. Incomplete Tx's to undo: {}", incompleteTxs);
         return incompleteTxs;
     }
 
     private Deque<LogRecord> getLogsUntilCheckpoint() {
         Deque<LogRecord> recordsStack = new ArrayDeque<>();
+        Set<Long> startedTransactions = new HashSet<>();
+        List<Long> nqRunningTransactions = new ArrayList<>();
+        boolean foundNQCheckpoint = false;
         Iterator<byte[]> recordBytesIter = logMgr.iterator();
 
         while (recordBytesIter.hasNext()) {
             byte[] recordBytes = recordBytesIter.next();
             LogRecord record = LogRecordFactory.convertToLogRecord(recordBytes);
 
+            if (record.getOperator() == LogRecord.START)
+                startedTransactions.add(record.getTxNum());
+
             // If we exit the loop, but never hit a checkpoint, assume we hit the end of the log file
             if (record.getOperator() == LogRecord.CHECKPOINT)
                 break;
 
+            if (record.getOperator() == LogRecord.NQ_CHECKPOINT) {
+                foundNQCheckpoint = true;
+                NQCheckpointRecord nqRecord = (NQCheckpointRecord) record; // Need to do this to cast the LogRecord
+                nqRunningTransactions = nqRecord.getRunningTxNums();
+                continue;
+            }
+
             recordsStack.push(record);
+
+            // If we've seen all the running Tx's from the NQ checkpoint start records, then we know we've gone far
+            // enough back in the logs. We can stop now. Also we need the foundNQCheckpoint flag because if the
+            // nqRunningTransactions list is empty (a valid case), this will prematurely return since our
+            // nqRunningTransactions list is empty until we populate it with a NQCheckpoint record
+            if (foundNQCheckpoint && startedTransactions.containsAll(nqRunningTransactions))
+                break;
         }
 
         if (recordsStack.isEmpty())
@@ -158,6 +192,7 @@ public class RecoveryMgr {
         Set<Long> finishedTransactions = new HashSet<>();
         Set<Long> startedTransactions = new HashSet<>();
         List<Long> nqRunningTransactions = new ArrayList<>();
+        boolean foundNQCheckpoint = false;
         Iterator<byte[]> recordBytesIter = logMgr.iterator();
 
         while (recordBytesIter.hasNext()) {
@@ -167,10 +202,15 @@ public class RecoveryMgr {
             if (record.getOperator() == LogRecord.START)
                 startedTransactions.add(record.getTxNum());
 
+            // If we hit a checkpoint, we can assume everything before the checkpoint is durable, so we can exit now
             if (record.getOperator() == LogRecord.CHECKPOINT)
                 return;
 
+            // If we see an NQ checkpoint, we need to ensure that we've gone back and seen the start of every
+            // transaction that was running during the checkpoint. We will undo them if we didn't see a corresponding
+            // termination for those transactions (commit/rollback)
             if (record.getOperator() == LogRecord.NQ_CHECKPOINT) {
+                foundNQCheckpoint = true;
                 NQCheckpointRecord nqRecord = (NQCheckpointRecord) record; // Need to do this to cast the LogRecord
                 nqRunningTransactions = nqRecord.getRunningTxNums();
                 continue;
@@ -184,59 +224,95 @@ public class RecoveryMgr {
             }
 
             // If we've seen all the running Tx's from the NQ checkpoint start records, then we know we've gone far
-            // enough back in the logs. We can stop now
-            if (!nqRunningTransactions.isEmpty() && startedTransactions.containsAll(nqRunningTransactions))
+            // enough back in the logs. We can stop now. Also we need the foundNQCheckpoint flag because if the
+            // nqRunningTransactions list is empty (a valid case), this will prematurely return since our
+            // nqRunningTransactions list is empty until we populate it with a NQCheckpoint record
+            if (foundNQCheckpoint && startedTransactions.containsAll(nqRunningTransactions))
                 return;
         }
     }
 
-    // newValue is intentionally unused in case we need to implement redo or undo-redo recovery (which I likely will)
-    // This pattern applies to all the other "set" functions
+    private boolean isSetUndoRedoStrategy() {
+        return ConfigFetcher.getRecoveryMgrStrategy() == RecoveryMgrStrategy.UNDO_REDO;
+    }
+
     public long setInt(Buffer buffer, int offset, int newValue) {
         int oldValue = buffer.getContents().getInt(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetIntRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetIntRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setString(Buffer buffer, int offset, String newValue) {
         String oldValue = buffer.getContents().getString(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetStringRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetStringRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setShort(Buffer buffer, int offset, short newValue) {
         short oldValue = buffer.getContents().getShort(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetShortRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetShortRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setByte(Buffer buffer, int offset, byte newValue) {
         byte oldValue = buffer.getContents().getByte(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetByteRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetByteRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setBoolean(Buffer buffer, int offset, boolean newValue) {
         boolean oldValue = buffer.getContents().getBoolean(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetBooleanRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetBooleanRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setLong(Buffer buffer, int offset, long newValue) {
         long oldValue = buffer.getContents().getLong(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetLongRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetLongRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setDouble(Buffer buffer, int offset, double newValue) {
         double oldValue = buffer.getContents().getDouble(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetDoubleRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetDoubleRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 
     public long setDateTime(Buffer buffer, int offset, LocalDateTime newValue) {
         LocalDateTime oldValue = buffer.getContents().getDateTime(offset);
         BlockId block = buffer.getBlock();
+
+        if (isSetUndoRedoStrategy())
+            return SetDateTimeRecord.writeToLog(logMgr, txNum, block, offset, oldValue, newValue);
+
         return SetDateTimeRecord.writeToLog(logMgr, txNum, block, offset, oldValue);
     }
 

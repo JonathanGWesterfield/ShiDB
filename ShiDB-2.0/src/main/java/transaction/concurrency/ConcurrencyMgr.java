@@ -1,10 +1,13 @@
 package transaction.concurrency;
 
 import file.BlockId;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.TestOnly;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j (topic = "ConcurrencyMgr")
 public class ConcurrencyMgr {
     enum LockType {
         SHARED,
@@ -16,6 +19,12 @@ public class ConcurrencyMgr {
     private static LockTable lockTable = new LockTable();
 
     private Map<BlockId, LockType> locks = new HashMap<>();
+
+    @TestOnly
+    public static void reinit() {
+        log.debug("Reiniting the ConcurrencyMgr");
+        lockTable.clearLocks();
+    }
 
     public void setSharedLock(BlockId block) {
         if (!locks.containsKey(block)) {
