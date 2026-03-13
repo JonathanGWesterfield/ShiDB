@@ -1,10 +1,10 @@
 package file;
 
 import lombok.NonNull;
+import server.ConfigFetcher;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -15,9 +15,6 @@ import java.time.ZoneOffset;
  */
 public class Page {
     private ByteBuffer byteBuffer;
-
-    // For the sake of simplicity, we will start with ASCII. No need to kill ourselves with UTF-8 yet
-    public static final Charset CHARSET = StandardCharsets.US_ASCII;
 
     /**
      * Constructor used to create bytebuffers from scratch. Since I/O buffers are a valuable resource,
@@ -118,10 +115,13 @@ public class Page {
         return byteArr;
     }
 
-    public String getString(int offset) {
-        // No need to validate the offset since lower level functions will validate it
+    public String getString(int offset, Charset charset) {
         byte[] byteStr = getBytes(offset);
-        return new String(byteStr, CHARSET);
+        return new String(byteStr, charset);
+    }
+
+    public String getString(int offset) {
+        return getString(offset, ConfigFetcher.getStringCharset());
     }
 
     public int getExactStringByteLength(int offset) {
@@ -190,11 +190,15 @@ public class Page {
         byteBuffer.putDouble(offset, val);
     }
 
-    public void setString(int offset, String val) {
+    public void setString(int offset, String value, Charset charset) {
         // No need to validate the offset since lower level functions will validate it
 
-        byte[] byteStr = val.getBytes(CHARSET);
+        byte[] byteStr = value.getBytes(charset);
         setBytes(offset, byteStr);
+    }
+
+    public void setString(int offset, String value) {
+        setString(offset, value, ConfigFetcher.getStringCharset());
     }
 
     /**
@@ -205,9 +209,16 @@ public class Page {
      * @return The maximum number of bytes needed to properly store a string based on the charset used
      */
     public static int calcMaxByteLength(@NonNull String str) {
-        int strLen = str.length();
-        float bytesPerChar = CHARSET.newEncoder().maxBytesPerChar();
-        return Integer.BYTES + (strLen * (int)bytesPerChar);
+        return calcMaxByteLength(str.length());
+    }
+
+    public static int calcMaxByteLength(int stringLength) {
+        return calcMaxByteLength(stringLength, ConfigFetcher.getStringCharset());
+    }
+
+    public static int calcMaxByteLength(int stringLength, Charset charset) {
+        float bytesPerChar = charset.newEncoder().maxBytesPerChar();
+        return Integer.BYTES + (stringLength * (int) bytesPerChar);
     }
 
     public ByteBuffer getContents() {

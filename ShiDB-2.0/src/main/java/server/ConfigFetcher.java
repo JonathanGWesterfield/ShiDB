@@ -8,6 +8,8 @@ import transaction.recovery.RecoveryMgrStrategy;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
 
@@ -88,9 +90,28 @@ public class ConfigFetcher {
         return "shidb-2.0.log"; // I have no idea where this will end up, but at least I know it's name...
     }
 
+    public static Charset getStringCharset() {
+        final Map<String, Charset> CHARSET_MAP = Map.of(
+                "US_ASCII",  StandardCharsets.US_ASCII,
+                "UTF_8",     StandardCharsets.UTF_8,
+                "UTF_16",    StandardCharsets.UTF_16,
+                "UTF_32",    StandardCharsets.UTF_32
+        );
+        if (getConfigs().configMap.containsKey("string_charset")) {
+            String strCharset = getConfigs().configMap.get("string_charset").toString();
+
+            if (!CHARSET_MAP.containsKey(strCharset))
+                throw new IllegalArgumentException("Unknown charset for string encoding: " + strCharset + "!");
+
+            return CHARSET_MAP.get(strCharset);
+        }
+
+        return StandardCharsets.US_ASCII;
+    }
+
     public static int getDBFileBlockSize() {
-        if (getConfigs().configMap.containsKey("db_file_block_size"))
-            return (int) getConfigs().configMap.get("db_file_block_size");
+        if (getConfigs().configMap.containsKey("db_file_block_size_bytes"))
+            return (int) getConfigs().configMap.get("db_file_block_size_bytes");
         return 400; // same default as used in the ShiDB unit tests
     }
 

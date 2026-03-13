@@ -3,7 +3,7 @@
   "buffer_mgr_selection_strategy": "NAIVE",
   "buffer_mgr_pin_max_wait_time_milliseconds": 500,
   "size_of_buffer_pool": 8,
-  "db_file_block_size": 400,
+  "db_file_block_size_bytes": 400,
   "recovery_manager_recovery_strategy": "UNDO_REDO",
   "concurrency_mgr_acquire_lock_max_wait_time_milliseconds": 1000,
   "concurrency_mgr_acquire_lock_poll_step_milliseconds": 100,

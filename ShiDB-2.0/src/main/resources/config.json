@@ -1,6 +1,14 @@
 {
     "database_directory": "ShiDB-Dir",
     "database_log_file": "shidb-2.0.log",
+    "db_file_block_size_bytes": 400,
+    "string_charset": "US_ASCII",
+    "_string_charset_options": [
+        "US_ASCII",
+        "UTF_8",
+        "UTF_16",
+        "UTF_32"
+    ],
     "buffer_mgr_selection_strategy": "NAIVE",
     "_selection_strategies": [
         "NAIVE",
@@ -11,7 +19,6 @@
     "buffer_mgr_pin_max_wait_time_milliseconds": 2000,
     "buffer_mgr_pin_poll_step_milliseconds": 100,
     "size_of_buffer_pool": 3,
-    "db_file_block_size": 400,
     "recovery_manager_recovery_strategy": "UNDO_ONLY",
     "_recovery_manager_strategies": [
         "UNDO_ONLY",
