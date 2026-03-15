@@ -106,10 +106,6 @@ public interface LogRecord {
         page.setInt(blockNumPosition, block.blockNum());
         page.setInt(offsetPosition, offset);
 
-        Logger log = LoggerFactory.getLogger("RecoverMgr");
-        log.debug("Writing log record: <{}, tx: {}, block: {}, offset: {}, value: {}>",
-                LogRecord.operatorToString(operator), txNum, block, offset, valueWriter.strValue);
-
         valueWriter.write(page, valuePosition);
 
         return record;
