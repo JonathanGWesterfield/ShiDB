@@ -1,0 +1,15 @@
+{
+  "database_log_file": "shidb-2.0.log",
+  "db_file_block_size_bytes": 400,
+  "string_charset": "US_ASCII",
+  "buffer_mgr_selection_strategy": "NAIVE",
+  "buffer_mgr_pin_max_wait_time_milliseconds": 2000,
+  "buffer_mgr_pin_poll_step_milliseconds": 100,
+  "size_of_buffer_pool": 8,
+  "recovery_manager_recovery_strategy": "UNDO_ONLY",
+  "concurrency_mgr_acquire_lock_max_wait_time_milliseconds": 3000,
+  "concurrency_mgr_acquire_lock_poll_step_milliseconds": 100,
+  "concurrency_mgr_poll_step_waiting_for_transaction_drain_q_checkpoint_milliseconds": 100,
+  "concurrency_mgr_checkpoint_every_n_transactions": 10,
+  "concurrency_mgr_use_NQ_checkpoints": true
+}
