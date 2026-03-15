@@ -1,6 +1,7 @@
 package file;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import server.ConfigFetcher;
 
 import java.nio.ByteBuffer;
@@ -13,6 +14,7 @@ import java.time.ZoneOffset;
  * A page holds a single block. This lets the block be read from the disk and modified in memory,
  * saving us from expensive I/O operations to read/write from the disk
  */
+@Slf4j(topic = "FileMgr")
 public class Page {
     private ByteBuffer byteBuffer;
 
@@ -92,7 +94,9 @@ public class Page {
             return;
 
         String errMsg = String.format(
-                "Attempting to insert at offset %d failed because the object of %s bytes is too large!", offset, byteLength);
+                "Attempting to insert at offset %d failed because the object" +
+                        " of %s bytes is too large for the %s byte block size limit!",
+                offset, byteLength, byteBuffer.capacity());
         throw new RuntimeException(errMsg);
     }
 
@@ -224,5 +228,15 @@ public class Page {
     public ByteBuffer getContents() {
         byteBuffer.position(0);
         return byteBuffer;
+    }
+
+    public void clear() {
+        log.debug("Clearing the byte buffer by zeroing it out");
+        log.debug("Bytebuffer before clearing: {}", ConfigFetcher.getStringCharset().decode(byteBuffer));
+        byte[] zeros = new byte[byteBuffer.capacity()];
+        byteBuffer.position(0);
+        byteBuffer.put(zeros);
+        byteBuffer.position(0);
+        log.debug("Bytebuffer after clearing: {}", ConfigFetcher.getStringCharset().decode(byteBuffer));
     }
 }

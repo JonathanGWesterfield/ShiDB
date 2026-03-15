@@ -69,6 +69,7 @@ public class Buffer {
     protected void assignToBlock(BlockId block) {
         flush();
         this.block = block;
+        contents.clear(); // zero out stale data first
         fileMgr.readFromDiskToPage(block, contents);
         pins = 0;
     }

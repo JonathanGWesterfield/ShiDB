@@ -71,13 +71,16 @@ public class Transaction {
     public void recover() {
         bufferMgr.flushAll(txNum);
         recoveryMgr.recover();
+        log.debug("Transaction: {} RECOVERED", txNum);
     }
 
     public void pin(BlockId block) {
+        log.debug("Transaction {} pinning block: {}", txNum, block);
         ownedBuffers.pin(block);
     }
 
     public void unPin(BlockId block) {
+        log.debug("Transaction txNum {} unpinning block: {}", txNum, block);
         ownedBuffers.unpin(block);
     }
 
@@ -197,6 +200,7 @@ public class Transaction {
 
     private void setValue(BlockId block, int offset, ShouldLog shouldLog,
                           BiFunction<Buffer, Integer, Long> recoverMgrLogger, BiConsumer<Page, Integer> pageWriter) {
+        log.debug("Tx {} attempting to set exclusive lock on block {}", txNum, block);
         concurrencyMgr.setExclusiveLock(block);
         Buffer buffer = ownedBuffers.getBuffer(block);
 
