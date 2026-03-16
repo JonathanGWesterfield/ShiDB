@@ -85,7 +85,14 @@ public class RecordPage {
     }
 
     public void setString(int recordSlot, String fieldName, String value) {
-        tx.setString(block, calcFieldPosition(recordSlot, fieldName), value, ShouldLog.OK_TO_LOG);
+        int fieldLength = layout.getSchema().getFieldLength(fieldName);
+
+        if (value.length() <= fieldLength)
+            tx.setString(block, calcFieldPosition(recordSlot, fieldName), value, ShouldLog.OK_TO_LOG);
+
+        String err = String.format("String=%s for field=%s is longer than VARCHAR field length=%s",
+                value, fieldName, fieldLength);
+        throw new RuntimeException(err);
     }
 
     public void setByte(int recordSlot, String fieldName, byte value) {

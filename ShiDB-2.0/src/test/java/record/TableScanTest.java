@@ -178,6 +178,18 @@ class TableScanTest {
             ts.close();
             tx.commit();
         }
+
+        @Test
+        @DisplayName("String exceeding declared field length throws RuntimeException")
+        void stringExceedingDeclaredLengthThrows() {
+            Transaction tx = newTx();
+            TableScan ts = new TableScan(tx, uniqueTable(), buildLayout());
+            ts.insert();
+            assertThrows(RuntimeException.class, () -> ts.setString("B", "toolongstring"),
+                    "Inserting a string longer than the declared field length must throw");
+            ts.close();
+            tx.commit();
+        }
     }
 
     // =========================================================================
@@ -305,14 +317,14 @@ class TableScanTest {
             String table = uniqueTable();
             TableScan ts = new TableScan(tx, table, buildLayout());
             insertRecords(ts, 3);
-            int blockCountAfterInserts = tx.size(table + ".tbl");
+            int blockCountAfterInserts = tx.fileSize(table + ".tbl");
 
             ts.beforeFirst();
             while (ts.next())
                 ts.delete();
 
             ts.insert();
-            int blockCountAfterReinsert = tx.size(table + ".tbl");
+            int blockCountAfterReinsert = tx.fileSize(table + ".tbl");
 
             assertEquals(blockCountAfterInserts, blockCountAfterReinsert,
                     "Inserting into a table with free slots must not append a new block");

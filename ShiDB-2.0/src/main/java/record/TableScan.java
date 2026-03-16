@@ -21,7 +21,7 @@ public class TableScan {
         this.tx = tx;
         this.layout = layout;
         this.filename = tableName + ".tbl";
-        if (tx.size(filename) == 0)
+        if (tx.fileSize(filename) == 0)
             moveToNewBlock();
         else
             moveToBlock(0);
@@ -170,6 +170,6 @@ public class TableScan {
     }
 
     private boolean atLastBlock() {
-        return recordPage.getBlock().blockNum() == (tx.size(filename) - 1);
+        return recordPage.getBlock().blockNum() == (tx.fileSize(filename) - 1);
     }
 }

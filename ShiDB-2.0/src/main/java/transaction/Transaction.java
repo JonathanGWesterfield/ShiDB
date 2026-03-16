@@ -164,7 +164,7 @@ public class Transaction {
                 (page, offsetPos) -> page.setDateTime(offsetPos, newValue));
     }
 
-    public int size(String filename) {
+    public int fileSize(String filename) {
         // We do this to ensure that no other transaction can append to the end of the file and invalidate the file
         // block length calculation before the user can use it.
         // For reading, we use a shared lock since multiple transactions should be able to read a block with no issues
