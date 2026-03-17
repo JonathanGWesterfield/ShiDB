@@ -92,29 +92,6 @@ public class TableScanner {
         return this;
     }
 
-//    @Deprecated
-//    // I'm really not a fan of the next() function returning a boolean instead of a value like an iterator
-//    public boolean next() {
-//        Attempt<Integer> nextSlotAttempt = recordPage.nextInUseSlotAfter(currentSlot);
-//        if (nextSlotAttempt.hasSucceeded()) {
-//            currentSlot = nextSlotAttempt.value();
-//            return true;
-//        }
-//
-//        while(currentSlot == NULL_SLOT || nextSlotAttempt.hasFailed()) {
-//            if (atLastBlock())
-//                return false;
-//
-//            moveToBlock(recordPage.getBlock().blockNum() + 1);
-//            nextSlotAttempt = recordPage.nextInUseSlotAfter(currentSlot);
-//
-//            if (nextSlotAttempt.hasSucceeded())
-//                currentSlot = nextSlotAttempt.value();
-//        }
-//
-//        return true;
-//    }
-
     public void insert() {
         Attempt<Integer> insertAttempt = recordPage.insertInEmptySlotAfter(currentSlot);
         if (insertAttempt.hasSucceeded()) {
