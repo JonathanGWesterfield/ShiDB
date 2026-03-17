@@ -6,9 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import Transaction.Transaction;
 
 import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
 
 @Slf4j(topic = "RecordMgr")
-public class TableScan {
+public class TableScanner {
     private static final int NULL_SLOT = -1;
 
     private Transaction tx;
@@ -16,8 +17,9 @@ public class TableScan {
     private RecordPage recordPage;
     private String filename;
     private int currentSlot;
+    private RecordID cachedNextRecordID;
 
-    public TableScan(Transaction tx, String tableName, Layout layout) {
+    public TableScanner(Transaction tx, String tableName, Layout layout) {
         this.tx = tx;
         this.layout = layout;
         this.filename = tableName + ".tbl";
@@ -25,7 +27,6 @@ public class TableScan {
             moveToNewBlock();
         else
             moveToBlock(0);
-
     }
 
     // Methods that actually implement the table scan
@@ -36,32 +37,86 @@ public class TableScan {
 
     public void beforeFirst() {
         moveToBlock(0);
+        cachedNextRecordID = null;
     }
 
-    // I'm really not a fan of the next() function returning a boolean instead of a value like an iterator
-    public boolean next() {
-        Attempt<Integer> nextSlotAttempt = recordPage.nextSlotAfter(currentSlot);
-        if (nextSlotAttempt.hasSucceeded()) {
-            currentSlot = nextSlotAttempt.value();
+    private Attempt<RecordID> findNextRid(int startBlock, int startSlot) {
+        int blockNum = startBlock;
+        int slot = startSlot;
+
+        while (blockNum < tx.fileSize(filename)) {
+            Attempt<Integer> attempt;
+
+            if (blockNum == startBlock) {
+                // reuse the already-pinned recordPage — don't create a new one
+                attempt = recordPage.nextInUseSlotAfter(slot);
+            } else {
+                BlockId block = new BlockId(filename, blockNum);
+                RecordPage page = new RecordPage(tx, block, layout);
+                attempt = page.nextInUseSlotAfter(slot);
+                tx.unPin(block);
+            }
+
+            if (attempt.hasSucceeded())
+                return Attempt.succeeded(new RecordID(blockNum, attempt.value()));
+
+            blockNum++;
+            slot = NULL_SLOT;
+        }
+
+        return Attempt.failed();
+    }
+
+    public boolean hasNext() {
+        if (cachedNextRecordID != null) return true;
+        Attempt<RecordID> attempt = findNextRid(recordPage.getBlock().blockNum(), currentSlot);
+        if (attempt.hasSucceeded()) {
+            cachedNextRecordID = attempt.value();
             return true;
         }
-
-        while(currentSlot == NULL_SLOT || nextSlotAttempt.hasFailed()) {
-            if (atLastBlock())
-                return false;
-
-            moveToBlock(recordPage.getBlock().blockNum() + 1);
-            nextSlotAttempt = recordPage.nextSlotAfter(currentSlot);
-
-            if (nextSlotAttempt.hasSucceeded())
-                currentSlot = nextSlotAttempt.value();
-        }
-
-        return true;
+        return false;
     }
 
+    public TableScanner next() {
+        if (cachedNextRecordID == null) {
+            Attempt<RecordID> nextRIDSearchAttempt = findNextRid(recordPage.getBlock().blockNum(), currentSlot);
+            if (nextRIDSearchAttempt.hasFailed())
+                throw new NoSuchElementException("No more records in table " + filename +
+                        "! Call the hasNext() function next time!");
+
+            cachedNextRecordID = nextRIDSearchAttempt.value();
+        }
+
+        moveToRecordID(cachedNextRecordID);
+        cachedNextRecordID = null;
+        return this;
+    }
+
+//    @Deprecated
+//    // I'm really not a fan of the next() function returning a boolean instead of a value like an iterator
+//    public boolean next() {
+//        Attempt<Integer> nextSlotAttempt = recordPage.nextInUseSlotAfter(currentSlot);
+//        if (nextSlotAttempt.hasSucceeded()) {
+//            currentSlot = nextSlotAttempt.value();
+//            return true;
+//        }
+//
+//        while(currentSlot == NULL_SLOT || nextSlotAttempt.hasFailed()) {
+//            if (atLastBlock())
+//                return false;
+//
+//            moveToBlock(recordPage.getBlock().blockNum() + 1);
+//            nextSlotAttempt = recordPage.nextInUseSlotAfter(currentSlot);
+//
+//            if (nextSlotAttempt.hasSucceeded())
+//                currentSlot = nextSlotAttempt.value();
+//        }
+//
+//        return true;
+//    }
+
     public void insert() {
-        Attempt<Integer> insertAttempt = recordPage.insertAfter(currentSlot);
+        Attempt<Integer> insertAttempt = recordPage.insertInEmptySlotAfter(currentSlot);
         if (insertAttempt.hasSucceeded()) {
             currentSlot = insertAttempt.value();
             return;
@@ -73,7 +128,7 @@ public class TableScan {
                 else
                     moveToBlock(recordPage.getBlock().blockNum() + 1);
 
-                insertAttempt = recordPage.insertAfter(currentSlot);
+                insertAttempt = recordPage.insertInEmptySlotAfter(currentSlot);
             }
         }
 
@@ -81,6 +136,7 @@ public class TableScan {
             throw new RuntimeException("Even after moving to a new/free block, failed to insert!");
 
         currentSlot = insertAttempt.value();
+        cachedNextRecordID = null;
     }
 
     public int getInt(String fieldName) {
@@ -141,6 +197,7 @@ public class TableScan {
 
     public void delete() {
         recordPage.delete(currentSlot);
+        cachedNextRecordID = null;
     }
 
     public void moveToRecordID(RecordID recordID) {
@@ -148,6 +205,7 @@ public class TableScan {
         BlockId block = new BlockId(filename, recordID.blockNumber());
         recordPage = new RecordPage(tx, block, layout);
         currentSlot = recordID.slotNumber();
+        cachedNextRecordID = null;
     }
 
     public RecordID getRecordId() {

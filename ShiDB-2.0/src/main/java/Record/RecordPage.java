@@ -44,7 +44,7 @@ public class RecordPage {
     }
 
     public <T> T getValue(int recordSlot, String fieldName, BiFunction<BlockId, Integer, T> valueGetter) {
-        int fieldPosition = getSlotOffset(recordSlot) + layout.getFieldOffset(fieldName);
+        int fieldPosition = getRecordSlotOffset(recordSlot) + layout.getFieldOffset(fieldName);
         return valueGetter.apply(block, fieldPosition);
     }
 
@@ -77,7 +77,7 @@ public class RecordPage {
     }
 
     private int calcFieldPosition(int recordSlot, String fieldName) {
-        return getSlotOffset(recordSlot) + layout.getFieldOffset(fieldName);
+        return getRecordSlotOffset(recordSlot) + layout.getFieldOffset(fieldName);
     }
 
     public void setInt(int recordSlot, String fieldName, int value) {
@@ -126,7 +126,7 @@ public class RecordPage {
         log.debug("Formatting record page...");
         int recordslot = 0;
         while (isValidSlot(recordslot)) {
-            int recordSlotOffset = getSlotOffset(recordslot);
+            int recordSlotOffset = getRecordSlotOffset(recordslot);
             tx.setBoolean(block, recordSlotOffset, EMPTY, ShouldLog.DO_NOT_LOG);
 
             Schema schema = layout.getSchema();
@@ -151,7 +151,7 @@ public class RecordPage {
         }
     }
 
-    public Attempt<Integer> nextSlotAfter(int recordSlot) {
+    public Attempt<Integer> nextInUseSlotAfter(int recordSlot) {
         Attempt<Integer> slotSearch = searchForSlotAfter(recordSlot, IN_USE);
         if (slotSearch.hasSucceeded())
             return Attempt.succeeded(slotSearch.value());
@@ -161,7 +161,7 @@ public class RecordPage {
 
     // Will attempt to insert a record after the given record slot. Since this could fail, and it will continue iterating
     // and searching for an empty block, will return the slot number that it eventually inserted into
-    public Attempt<Integer> insertAfter(int recordSlot) {
+    public Attempt<Integer> insertInEmptySlotAfter(int recordSlot) {
         Attempt<Integer> newSlotSearchAttempt = searchForSlotAfter(recordSlot, EMPTY);
         if (newSlotSearchAttempt.hasSucceeded()) {
             int foundSlotNum = newSlotSearchAttempt.value();
@@ -173,7 +173,7 @@ public class RecordPage {
     }
 
     private void setFlag(int recordSlot, boolean flag) {
-        tx.setBoolean(block, getSlotOffset(recordSlot), flag, ShouldLog.OK_TO_LOG);
+        tx.setBoolean(block, getRecordSlotOffset(recordSlot), flag, ShouldLog.OK_TO_LOG);
     }
 
     private Attempt<Integer> searchForSlotAfter(int recordSlot, boolean flag) {
@@ -183,7 +183,7 @@ public class RecordPage {
 
         int counter = 0;
         while (isValidSlot(recordSlot)) {
-            int slotOffset = getSlotOffset(recordSlot);
+            int slotOffset = getRecordSlotOffset(recordSlot);
 
             boolean valueAtSlot = tx.getBoolean(block, slotOffset);
             boolean foundMatchingSlot = valueAtSlot == flag;
@@ -201,11 +201,11 @@ public class RecordPage {
     }
 
     public boolean isValidSlot(int recordSlot) {
-        int slotOffset = getSlotOffset(recordSlot + 1);
+        int slotOffset = getRecordSlotOffset(recordSlot + 1);
         return slotOffset <= tx.blockSize();
     }
 
-    public int getSlotOffset(int recordSlot) {
+    public int getRecordSlotOffset(int recordSlot) {
         return recordSlot * layout.getSlotSize();
     }
 }
