@@ -174,6 +174,17 @@ public class Transaction {
         return fileMgr.numBlocksInFile(filename);
     }
 
+    /*
+    First pass. Realistically, we need to get an exclusive lock on this table to stop clients from reading and writing
+    to it. Deleting without getting our locks could break other clients and possible deadlock the DB. From there, we
+    need a way to hook this into the recoveryMgr so we can recovery the DB and also have a way to rollback the
+    transaction if we don't want to drop the table. To hook into the recoveryMgr, would likely need to add a new
+    Log record type to the recovery mgr as well as a special case in the recovery strategies to handle it
+     */
+    public void dropTable(String tableName) {
+        fileMgr.deleteFile(tableName);
+    }
+
     public BlockId append(String filename) {
         // We set this to ensure that no other transaction can append the end of the file and possibly invalidate
         // the size that the calling client expected. We use an exclusive lock because we need to make sure that no

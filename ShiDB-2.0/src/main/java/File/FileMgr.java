@@ -165,23 +165,21 @@ public class FileMgr {
         }
     }
 
-    /**
-     * This is a helper function for unit testing. This is an easy way to go through all of the files
-     * opened during runtime, close the connections and delete them. Maybe it'll be used to drop tables
-     * at some point, idk
-     * @param filename
-     */
     public void deleteFile(String filename) {
         try {
             // First need to ensure that the random access file is closed
             RandomAccessFile accessFile = fetchFile(filename);
             accessFile.close();
+            openFiles.remove(filename);
+            numFilesAppended.remove(filename);
 
-            new File(filename).delete();
+            File dbFile = new File(dbDirectory, filename);
+            if (!dbFile.delete())
+                throw new IOException("File.delete() returned false for: " + dbFile.getAbsolutePath());
         }
         catch (IOException e) {
             // Since this function is purely used to help with unit testing, don't care if deletion fails
-            System.out.println("Failed to delete file: " + filename);
+            throw new RuntimeException("Failed to delete file: " + filename, e);
         }
     }
 
